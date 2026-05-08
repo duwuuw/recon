@@ -1,44 +1,50 @@
 # raicom
 
-PyTorch / [timm](https://github.com/huggingface/pytorch-image-models) notebooks for weather image classification: single-model training and a four-model ensemble with stacking (XGBoost).
+基于 PyTorch 与 [timm](https://github.com/huggingface/pytorch-image-models) 的天气图像分类实验：单模型训练，以及四模型集成 + Stacking 元分类器（XGBoost）。
 
-## Layout
+## 目录说明
 
-| Path | Purpose |
-|------|--------|
-| `notebooks/` | Jupyter notebooks (training, ensemble, checks) |
-| `src/raicom/` | Small Python package (`paths` for dataset root) |
-| `data/raw/` | Place ImageFolder dataset here as `dataset/` (see `data/README.md`) |
-| `outputs/checkpoints/` | Saved weights (intended to be committed for the competition) |
-| `outputs/figures/` | Plots and exports (same) |
+| 路径 | 说明 |
+|------|------|
+| `notebooks/` | Jupyter 笔记本（训练、集成、小检查脚本等） |
+| `src/raicom/` | 小型 Python 包（如 `paths` 用于统一数据集根路径） |
+| `data/raw/` | 将 ImageFolder 格式数据放在 `dataset/` 下（详见 `data/README.md`） |
+| `outputs/checkpoints/` | 保存的模型权重（比赛用途，可纳入版本库） |
+| `outputs/figures/` | 曲线图与导出图（同上） |
 
-## Setup
+## 环境配置
 
-1. Python 3.10+ recommended.
-2. Install PyTorch for your OS/CUDA from [pytorch.org](https://pytorch.org/) if you need a specific build.
-3. From the repository root:
+1. 建议使用 **Python 3.10+**。
+2. 若需指定 CUDA 等构建，请先到 [pytorch.org](https://pytorch.org/) 安装对应 PyTorch。
+3. 在仓库根目录执行：
 
 ```bash
 pip install -e ".[train]"
 ```
 
-Or:
+或分步：
 
 ```bash
 pip install -r requirements.txt
 pip install -e .
 ```
 
-4. Put your dataset at `data/raw/dataset/` (ImageFolder: one subfolder per class), **or** set:
+4. 将数据集放到 `data/raw/dataset/`（ImageFolder：每个类别一个子文件夹），**或**设置环境变量指向你的数据根目录：
+
+**Windows（cmd）：**
 
 ```bash
 set RAICOM_DATA_ROOT=D:\path\to\your\dataset
 ```
 
-(On Linux/macOS use `export RAICOM_DATA_ROOT=...`.)
+**Linux / macOS：**
 
-5. Open notebooks under `notebooks/` (start Jupyter from repo root or any folder; notebooks add `src` to `sys.path` when needed).
+```bash
+export RAICOM_DATA_ROOT=/path/to/your/dataset
+```
 
-## License
+5. 打开 `notebooks/` 下的笔记本即可；未执行 `pip install -e .` 时，部分笔记本会把仓库中的 `src` 加入 `sys.path` 以加载 `raicom.paths`。
 
-MIT — see `LICENSE`.
+## 许可证
+
+MIT，见仓库根目录 `LICENSE`。
