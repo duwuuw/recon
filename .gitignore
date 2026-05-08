@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data and large artifacts (do not commit datasets or weights)
+data/raw/*
+!data/raw/.gitkeep
+weather_dataset/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+outputs/checkpoints/*
+!outputs/checkpoints/.gitkeep
+outputs/figures/*
+!outputs/figures/.gitkeep
+
+# Logs and local env
+*.log
+.env
+.env.local
+
+# Hugging Face / timm cache (optional: remove next line if you want to cache in-repo)
+.cache/
