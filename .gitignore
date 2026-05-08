@@ -40,18 +40,12 @@ env/
 .DS_Store
 Thumbs.db
 
-# Data and large artifacts (do not commit datasets or weights)
+# Raw datasets (large; each clone keeps data locally or uses RAICOM_DATA_ROOT)
 data/raw/*
 !data/raw/.gitkeep
 weather_dataset/
-*.pt
-*.pth
-*.ckpt
-*.safetensors
-outputs/checkpoints/*
-!outputs/checkpoints/.gitkeep
-outputs/figures/*
-!outputs/figures/.gitkeep
+
+# Weights and figures: commit as needed (e.g. under outputs/) for competition submission.
 
 # Logs and local env
 *.log

@@ -9,8 +9,8 @@ PyTorch / [timm](https://github.com/huggingface/pytorch-image-models) notebooks 
 | `notebooks/` | Jupyter notebooks (training, ensemble, checks) |
 | `src/raicom/` | Small Python package (`paths` for dataset root) |
 | `data/raw/` | Place ImageFolder dataset here as `dataset/` (see `data/README.md`) |
-| `outputs/checkpoints/` | Saved weights (gitignored) |
-| `outputs/figures/` | Plots (gitignored) |
+| `outputs/checkpoints/` | Saved weights (intended to be committed for the competition) |
+| `outputs/figures/` | Plots and exports (same) |
 
 ## Setup
 

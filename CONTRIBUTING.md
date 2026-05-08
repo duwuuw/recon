@@ -11,4 +11,4 @@
 ## Conventions
 
 - Prefer environment variable `RAICOM_DATA_ROOT` for dataset path when sharing machine-specific setups.
-- Do not commit datasets, checkpoints, or secrets (`.env` is ignored).
+- Do not commit large raw datasets or secrets (`.env` is ignored). Checkpoints and figures under `outputs/` are meant to be versioned for the competition unless the repo owner decides otherwise.
