@@ -1,0 +1,22 @@
+先下载vscode和conda，网上直接可以下载
+https://www.cnblogs.com/haima/p/17441000.html这里面也有conda的安装和使用方法
+看你电脑是什么操作系统，windows就下windowsx64.
+下载好之后，是配置conda的环境变量，
+打开电脑设置，搜索  环境变量，点击 编辑系统环境变量，再点击右下方 环境变量（N）
+ 打开后会弹出白色框，里面可以添加环境变量
+下方是系统环境变量，上方是用户环境变量，编辑哪一个都可以
+这里选择编辑系统变量，在系统环境变量里找到path，双击，在弹出的框里点击新建，
+输入上面链接里面的图片里面的路径就行了，要是还是不会也可以看b站教程。
+
+然后是创建虚拟环境
+键盘按win+r，左下角会弹出框，输入cmd后回车弹出黑色框
+依次输入以下命令，输入一行回车一次
+conda create --prefix D:、xianyu python=3.11     ##这里面的xianyu可以修改成别的名字
+
+conda activate D:\xianyu   ##这里面的xianyu要和上面创建的环境名字一致
+
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+
+pip install timm pandas numpy matplotlib tqdm
+
+然后在vscode打开我的文件运行就行了

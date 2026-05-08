@@ -47,6 +47,10 @@ weather_dataset/
 
 # Weights and figures: commit as needed (e.g. under outputs/) for competition submission.
 
+# Recycle-bin recovery can duplicate huge trees; keep small `module/` notebooks trackable
+artifacts/recovered_from_recycle_bin/rl/
+artifacts/recovered_from_recycle_bin/flow_mamba/
+
 # Logs and local env
 *.log
 .env
