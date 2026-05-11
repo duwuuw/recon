@@ -1,6 +1,7 @@
 # raicom
 
 基于 PyTorch 与 [timm](https://github.com/huggingface/pytorch-image-models) 的天气图像分类实验：单模型训练，以及四模型集成 + Stacking 元分类器（XGBoost）。
+这个仓库的代码全是cursor写的
 
 ---
 
