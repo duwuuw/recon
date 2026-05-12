@@ -111,3 +111,6 @@ export RAICOM_DATA_ROOT=/path/to/your/dataset
 ## 协作与许可证
 
 协作流程见 `CONTRIBUTING.md`。许可证为 MIT，见 `LICENSE`。
+
+致谢：
+感谢codex，cursor，deepseek，doubao，是他们帮我写完了大部分代码
