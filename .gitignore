@@ -45,6 +45,11 @@ data/raw/*
 !data/raw/.gitkeep
 weather_dataset/
 
+# Model weights (large; do not commit; use releases or external storage)
+*.pth
+outputs/checkpoints/*.pth
+notebooks/*.pth
+
 # Weights and figures: commit as needed (e.g. under outputs/) for competition submission.
 
 # Recycle-bin recovery can duplicate huge trees; keep small `module/` notebooks trackable
