@@ -3,6 +3,8 @@
 基于 PyTorch 与 [timm](https://github.com/huggingface/pytorch-image-models) 的天气图像分类实验：单模型训练，以及四模型集成 + Stacking 元分类器（XGBoost）。
 这个仓库的代码全是cursor写的
 
+四模型集成那里还没有写好，这是后续我即将完善的多模型投票+机器学习模型决策的思路
+
 ---
 
 ## 各文件夹与文件是做什么的
