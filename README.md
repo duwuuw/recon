@@ -272,3 +272,12 @@ python -c "import torch; print(torch.cuda.is_available())"
 ## 协作与许可证
 
 协作约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。许可证为 MIT，见 [LICENSE](LICENSE)。
+
+
+
+--------------------------------------------------------------------------------------
+
+## 好可怕啊
+## 这本不属于我的力量
+## 虽然我最后是把他写完的
+## 但最后重构成一个相对完善的仓库，我还是使用了ai
