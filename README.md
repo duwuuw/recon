@@ -74,7 +74,7 @@ pip install flash-linear-attention
 
 所有训练脚本分类头固定为 **4 类**（`src/raicom/constants.py` 中 `NUM_CLASSES = 4`）。
 
-完整 11 类本地数据在 `weather_dataset/dataset/`（不上传 Git）。重新抽样：
+
 
 ```bash
 python scripts/build_sample_dataset.py
