@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Raw datasets (large; each clone keeps data locally or uses RAICOM_DATA_ROOT)
+data/raw/*
+!data/raw/.gitkeep
+weather_dataset/
+
+# Weights and figures (too large for git push; use checkpoints/ locally)
+*.pth
+checkpoints/
+outputs/checkpoints/
+notebooks/*.pth
+notebooks/*.png
+
+# Weights and figures: commit as needed (e.g. under outputs/) for competition submission.
+
+# Recycle-bin recovery can duplicate huge trees; keep small `module/` notebooks trackable
+artifacts/recovered_from_recycle_bin/rl/
+artifacts/recovered_from_recycle_bin/flow_mamba/
+
+# Logs and local env
+*.log
+.env
+.env.local
+
+# Hugging Face / timm cache (optional: remove next line if you want to cache in-repo)
+.cache/
