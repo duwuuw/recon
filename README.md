@@ -35,12 +35,14 @@ raicom/
 
 ## 环境配置
 
-**要求：Python 3.10+**
+**要求：Python 3.10+和conda**
 
 1. 安装 PyTorch（按 [pytorch.org](https://pytorch.org/) 选择 CUDA 版本）
 2. 在仓库根目录安装依赖：
 
 ```bash
+conda create --prefix D:\conda_envs\rk python=3.10
+conda activate rk
 pip install -e ".[train]"
 ```
 
