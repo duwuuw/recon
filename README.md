@@ -177,7 +177,7 @@ python scripts/train_ensemble_four_models_meta.py
 ```
 
 ### GDN 自定义模型
-
+这个模型依赖flash-linear-attention，如果你没有安装这个运行会很慢，甚至报错
 ```powershell
 python scripts/train_gdn.py
 ```
