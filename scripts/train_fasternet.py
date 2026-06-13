@@ -14,6 +14,7 @@ from raicom.cli import main_entry
 if __name__ == "__main__":
     main_entry(
         ClassifierTrainConfig(
+            num_classes=4,
             timm_model="fasternet_t2",
             checkpoint_name="fasternet_t2.pth",
             curves_name="fasternet_t2.png",

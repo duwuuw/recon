@@ -15,7 +15,7 @@ from raicom.timm_factory import create_timm_classifier
 def parse_args():
     p = argparse.ArgumentParser(description="Print model parameter count and FP32 size (MB)")
     p.add_argument("--model", default="convnextv2_nano")
-    p.add_argument("--num-classes", type=int, default=11)
+    p.add_argument("--num-classes", type=int, default=4)
     p.add_argument("--pretrained", action="store_true")
     return p.parse_args()
 

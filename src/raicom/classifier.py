@@ -10,6 +10,7 @@ from typing import Callable
 import torch
 import torch.nn as nn
 
+from raicom.constants import NUM_CLASSES
 from raicom.checkpoints import BestCheckpointTracker, load_checkpoint
 from raicom.data import build_imagefolder_loaders
 from raicom.paths import default_data_root, repo_root
@@ -52,6 +53,7 @@ class ClassifierTrainConfig:
     seed: int = 2023
     save_classes_in_checkpoint: bool = False
     drop_rate: float = 0.1
+    num_classes: int = NUM_CLASSES
     num_workers: int = 0
     output_dir: Path | None = None
     data_root: str | None = None
@@ -133,12 +135,17 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
     print(describe_phase(schedule, 2))
 
     data_root = cfg.data_root or default_data_root(require_existing=True)
-    train_loader, val_loader, test_loader, num_classes, class_names = build_imagefolder_loaders(
+    train_loader, val_loader, test_loader, dataset_num_classes, class_names = build_imagefolder_loaders(
         data_root,
         batch_size=cfg.batch_size,
         num_workers=cfg.num_workers,
     )
-    print(f"发现 {num_classes} 个类别: {class_names}")
+    if dataset_num_classes != cfg.num_classes:
+        raise ValueError(
+            f"数据集有 {dataset_num_classes} 类 {class_names}，"
+            f"与配置的 num_classes={cfg.num_classes} 不一致"
+        )
+    print(f"类别数 {cfg.num_classes}: {class_names}")
     print(
         f"训练/验证/测试: {len(train_loader.dataset)}, "
         f"{len(val_loader.dataset)}, {len(test_loader.dataset)}"
@@ -151,7 +158,7 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
                 cfg.timm_model, n, pretrained=cfg.pretrained, drop_rate=cfg.drop_rate
             )
 
-    model = build_model_fn(num_classes).to(device)
+    model = build_model_fn(cfg.num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
 
     freeze_timm_backbone(model)

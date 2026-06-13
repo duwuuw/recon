@@ -14,6 +14,7 @@ from raicom.cli import main_entry
 if __name__ == "__main__":
     main_entry(
         ClassifierTrainConfig(
+            num_classes=4,
             timm_model="mambaout_kobe",
             checkpoint_name="mambaout_kobe.pth",
             curves_name="training_curves_mamba.png",

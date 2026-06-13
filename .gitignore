@@ -40,10 +40,12 @@ env/
 .DS_Store
 Thumbs.db
 
-# Raw datasets (large; each clone keeps data locally or uses RAICOM_DATA_ROOT)
-data/raw/*
-!data/raw/.gitkeep
+# Raw datasets (large full copy stays local)
 weather_dataset/
+data/raw/*
+!data/raw/dataset/
+!data/raw/dataset/**
+!data/raw/README.md
 
 # Weights and figures (too large for git push; use checkpoints/ locally)
 *.pth

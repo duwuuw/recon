@@ -13,6 +13,7 @@ import torch.nn as nn
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from raicom.constants import NUM_CLASSES
 from raicom.checkpoints import BestCheckpointTracker, load_checkpoint
 from raicom.classifier import default_output_dir
 from raicom.data import build_imagefolder_loaders
@@ -66,13 +67,17 @@ def main():
     curves_path = output_dir / "training_curves_gdn.png"
 
     data_root = args.data_root or default_data_root(require_existing=True)
-    train_loader, val_loader, test_loader, num_classes, class_names = build_imagefolder_loaders(
+    train_loader, val_loader, test_loader, dataset_num_classes, class_names = build_imagefolder_loaders(
         data_root, batch_size=args.batch_size
     )
-    print(f"类别数 {num_classes}: {class_names}")
+    if dataset_num_classes != NUM_CLASSES:
+        raise ValueError(
+            f"数据集有 {dataset_num_classes} 类，需要 {NUM_CLASSES} 类: {class_names}"
+        )
+    print(f"类别数 {NUM_CLASSES}: {class_names}")
 
     model = GDN(
-        num_classes,
+        NUM_CLASSES,
         d_model=512,
         num_layers=6,
         dropout=0.1,

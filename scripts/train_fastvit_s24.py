@@ -14,6 +14,7 @@ from raicom.cli import main_entry
 if __name__ == "__main__":
     main_entry(
         ClassifierTrainConfig(
+            num_classes=4,
             timm_model="fastvit_sa24.apple_dist_in1k",
             checkpoint_name="fastvit_s24.pth",
             curves_name="fastvit_s24.png",

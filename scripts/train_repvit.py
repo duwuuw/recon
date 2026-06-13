@@ -14,6 +14,7 @@ from raicom.cli import main_entry
 if __name__ == "__main__":
     main_entry(
         ClassifierTrainConfig(
+            num_classes=4,
             timm_model="repvit_m1_5",
             checkpoint_name="repvit_m1_5.pth",
             curves_name="repvit_m1_5.png",

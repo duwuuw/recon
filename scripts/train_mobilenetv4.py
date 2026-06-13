@@ -14,6 +14,7 @@ from raicom.cli import main_entry
 if __name__ == "__main__":
     main_entry(
         ClassifierTrainConfig(
+            num_classes=4,
             timm_model="mobilenetv4_hybrid_medium",
             checkpoint_name="mobilenetv4_hybrid_medium.pth",
             curves_name="mobilenetv4_hybrid_medium.png",

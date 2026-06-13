@@ -18,6 +18,7 @@ from xgboost import XGBClassifier
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from raicom.classifier import default_output_dir
+from raicom.constants import NUM_CLASSES
 from raicom.data import build_imagefolder_loaders
 from raicom.ensemble import (
     collect_all_model_probs,
@@ -95,9 +96,14 @@ def main():
         f"两阶段训练: 阶段1={schedule.head_epochs} epoch, 阶段2={schedule.finetune_epochs} epoch, "
         f"合计 {schedule.total_epochs}"
     )
-    train_loader, val_loader, test_loader, num_classes, class_names = build_imagefolder_loaders(
+    train_loader, val_loader, test_loader, dataset_num_classes, class_names = build_imagefolder_loaders(
         data_root, batch_size=args.batch_size, num_workers=num_workers
     )
+    if dataset_num_classes != NUM_CLASSES:
+        raise ValueError(
+            f"数据集有 {dataset_num_classes} 类，需要 {NUM_CLASSES} 类: {class_names}"
+        )
+    num_classes = NUM_CLASSES
     print("Classes:", class_names)
     print("num_classes:", num_classes)
     print(

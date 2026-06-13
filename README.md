@@ -63,6 +63,23 @@ pip install flash-linear-attention
 
 ## 数据准备
 
+仓库已包含 **4 类 × 50 张** 样本（约 13MB），路径 `data/raw/dataset/`：
+
+| 类别 | 张数 |
+|------|------|
+| rain | 50 |
+| snow | 50 |
+| fogsmog | 50 |
+| hail | 50 |
+
+所有训练脚本分类头固定为 **4 类**（`src/raicom/constants.py` 中 `NUM_CLASSES = 4`）。
+
+完整 11 类本地数据在 `weather_dataset/dataset/`（不上传 Git）。重新抽样：
+
+```bash
+python scripts/build_sample_dataset.py
+```
+
 数据集需为 **ImageFolder** 格式：根目录下每个子文件夹对应一个类别。
 
 ```
