@@ -21,6 +21,7 @@ FINETUNE_LR="${FINETUNE_LR:-}"
 EARLY_STOP="${EARLY_STOP:-0}"
 CUDA_DEVICE="${CUDA_DEVICE:-0}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
+DRY_RUN="${DRY_RUN:-0}"
 
 mkdir -p "$OUTPUT_DIR/logs"
 cd "$PROJECT_DIR"
@@ -47,4 +48,8 @@ fi
 
 printf '%q ' "${cmd[@]}" | tee "$OUTPUT_DIR/logs/command.txt"
 printf '\n' | tee -a "$OUTPUT_DIR/logs/command.txt"
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "[train_ensemble] dry run, command not executed"
+  exit 0
+fi
 "${cmd[@]}" 2>&1 | tee "$OUTPUT_DIR/logs/train.log"

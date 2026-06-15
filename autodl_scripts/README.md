@@ -85,6 +85,12 @@ SEED=2023 \
 bash train_one.sh
 ```
 
+只测试命令拼接、不真正开始训练：
+
+```bash
+DRY_RUN=1 SCRIPT_NAME=train_fastvit_s24.py bash train_one.sh
+```
+
 ## 3. 批量训练指定模型
 
 不带参数时，顺序跑所有单模型：
@@ -112,6 +118,12 @@ BATCH_SIZE=24 HEAD_EPOCHS=30 FINETUNE_EPOCHS=10 \
 bash train_all_single_models.sh convnext11 mambaout_kobe mobilenetv4_hyper
 ```
 
+批量脚本也支持 dry run：
+
+```bash
+DRY_RUN=1 bash train_all_single_models.sh convnext11 fastvit_s24 repvit_m2
+```
+
 可用模型名：
 
 ```text
@@ -134,6 +146,12 @@ repvit_m2
 
 ```bash
 bash train_ensemble.sh
+```
+
+只测试集成训练命令：
+
+```bash
+DRY_RUN=1 bash train_ensemble.sh
 ```
 
 常用参数：

@@ -22,6 +22,7 @@ FINETUNE_LR="${FINETUNE_LR:-}"
 NUM_WORKERS="${NUM_WORKERS:-4}"
 SEED="${SEED:-}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
+DRY_RUN="${DRY_RUN:-0}"
 
 SCRIPT_PATH="$PROJECT_DIR/scripts/$SCRIPT_NAME"
 if [[ ! -f "$SCRIPT_PATH" ]]; then
@@ -32,25 +33,25 @@ fi
 mkdir -p "$OUTPUT_DIR/logs"
 cd "$PROJECT_DIR"
 
-HELP_TEXT="$(python "$SCRIPT_PATH" --help 2>&1 || true)"
 cmd=(python "$SCRIPT_PATH" --data-root "$DATA_ROOT" --output-dir "$OUTPUT_DIR")
 
-append_if_supported() {
+append_arg() {
   local flag="$1"
   local value="$2"
   [[ -n "$value" ]] || return 0
-  if grep -Eq "(^|[[:space:]])$flag([,=[:space:]]|$)" <<<"$HELP_TEXT"; then
-    cmd+=("$flag" "$value")
-  fi
+  cmd+=("$flag" "$value")
 }
 
-append_if_supported --batch-size "$BATCH_SIZE"
-append_if_supported --head-epochs "$HEAD_EPOCHS"
-append_if_supported --finetune-epochs "$FINETUNE_EPOCHS"
-append_if_supported --head-lr "$HEAD_LR"
-append_if_supported --finetune-lr "$FINETUNE_LR"
-append_if_supported --num-workers "$NUM_WORKERS"
-append_if_supported --seed "$SEED"
+append_arg --batch-size "$BATCH_SIZE"
+append_arg --head-epochs "$HEAD_EPOCHS"
+append_arg --finetune-epochs "$FINETUNE_EPOCHS"
+append_arg --head-lr "$HEAD_LR"
+append_arg --finetune-lr "$FINETUNE_LR"
+
+if [[ "$SCRIPT_NAME" != "train_gdn.py" ]]; then
+  append_arg --num-workers "$NUM_WORKERS"
+  append_arg --seed "$SEED"
+fi
 
 if [[ -n "$EXTRA_ARGS" ]]; then
   # shellcheck disable=SC2206
@@ -63,5 +64,10 @@ echo "[train_one] data: $DATA_ROOT"
 echo "[train_one] output: $OUTPUT_DIR"
 printf '%q ' "${cmd[@]}" | tee "$OUTPUT_DIR/logs/command.txt"
 printf '\n' | tee -a "$OUTPUT_DIR/logs/command.txt"
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "[train_one] dry run, command not executed"
+  exit 0
+fi
 
 "${cmd[@]}" 2>&1 | tee "$OUTPUT_DIR/logs/train.log"
