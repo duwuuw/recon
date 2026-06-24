@@ -147,7 +147,7 @@ bash train_all_single_models.sh --help
 python ../scripts/train_timm_preset.py --list
 ```
 
-## 4. 四模型集成 + XGBoost
+## 4. 小参数强模型集成 + XGBoost
 
 ```bash
 bash train_ensemble.sh
@@ -164,7 +164,7 @@ DRY_RUN=1 bash train_ensemble.sh
 ```bash
 DATA_ROOT=/root/autodl-tmp/data \
 RUN_NAME=ensemble_baseline \
-BATCH_SIZE=28 \
+ENSEMBLE=balanced \
 HEAD_EPOCHS=84 \
 FINETUNE_EPOCHS=16 \
 HEAD_LR=5e-4 \
@@ -172,6 +172,22 @@ FINETUNE_LR=2e-7 \
 CUDA_DEVICE=0 \
 EARLY_STOP=8 \
 bash train_ensemble.sh
+```
+
+内置集成方案：
+
+- `ENSEMBLE=balanced`：默认，`convnextv2_nano + mobilenetv4_hybrid_medium + fastvit_sa24 + mambaout_kobe + tiny_vit_11m_224`
+- `ENSEMBLE=lite`：更快，适合显存小或快速试榜
+- `ENSEMBLE=strong`：额外加入 `caformer_s18`
+- `ENSEMBLE=legacy`：旧 notebook 风格四模型 baseline
+
+Kaggle 风格常用开关：
+
+```bash
+TTA_HFLIP=1 bash train_ensemble.sh
+REUSE_CHECKPOINTS=1 bash train_ensemble.sh
+MODELS="convnextv2_pico fastvit_s12 repvit_m1_1 tiny_vit_5m_224" bash train_ensemble.sh
+NO_PRETRAINED=1 CPU=1 DRY_RUN=1 bash train_ensemble.sh
 ```
 
 ## 5. GDN
@@ -227,7 +243,7 @@ tmux attach -t ensemble
 - `logs/train.log`: 完整训练日志
 - `.pth`: 最佳权重
 - `.png`: 训练曲线
-- 集成训练还会保存 `ensemble_meta_xgboost.pkl`
+- 集成训练还会保存 `ensemble_meta_xgboost.pkl` 与 `ensemble_report.json`
 
 默认输出示例：
 

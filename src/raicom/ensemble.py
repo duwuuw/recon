@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, log_loss
 from tqdm import tqdm
 
 from raicom.checkpoints import load_checkpoint
@@ -46,10 +46,20 @@ def train_single_backbone(
     early_stopping_patience: int = DEFAULT_EARLY_STOPPING_PATIENCE,
     early_stopping_min_delta: float = DEFAULT_EARLY_STOPPING_MIN_DELTA,
     ensemble_val_f1_each_epoch: bool = False,
+    pretrained: bool = True,
+    drop_rate: float = 0.1,
+    model_kwargs: dict | None = None,
+    mixup_alpha: float | None = 0.205,
 ):
     schedule = two_phase or DEFAULT_TWO_PHASE
     peer_models_ordered = peer_models_ordered or []
-    model = create_timm_classifier(model_name, num_classes, pretrained=True).to(device)
+    model = create_timm_classifier(
+        model_name,
+        num_classes,
+        pretrained=pretrained,
+        drop_rate=drop_rate,
+        **(model_kwargs or {}),
+    ).to(device)
     criterion = nn.CrossEntropyLoss()
 
     print(f"[{model_name}] {describe_phase(schedule, 1)}")
@@ -74,7 +84,13 @@ def train_single_backbone(
     def _epoch_step(epoch: int, phase_tag: str, *, allow_early_stop: bool) -> bool:
         nonlocal best_acc, stopped_early
         tr_loss, tr_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device, epoch, mixup_alpha=0.205
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
+            epoch,
+            mixup_alpha=mixup_alpha,
         )
         va_loss, va_acc, _ = validate(
             model, val_loader, criterion, device, epoch, "Val", compute_f1=False
@@ -186,14 +202,18 @@ def train_single_backbone(
 
 
 @torch.no_grad()
-def collect_probabilities(model, dataloader, device, num_classes):
+def collect_probabilities(model, dataloader, device, num_classes, *, tta_hflip: bool = False):
     model = model.to(device)
     model.eval()
     probs_list, y_list = [], []
     for x, y in tqdm(dataloader, desc="Collect probs", leave=False):
         x = x.to(device)
         logits = model(x)
-        p = torch.softmax(logits, dim=1).cpu().numpy()
+        p = torch.softmax(logits, dim=1)
+        if tta_hflip:
+            logits_flip = model(torch.flip(x, dims=(3,)))
+            p = 0.5 * (p + torch.softmax(logits_flip, dim=1))
+        p = p.cpu().numpy()
         probs_list.append(p)
         y_list.append(y.numpy())
     probs = np.concatenate(probs_list, axis=0)
@@ -205,12 +225,18 @@ def collect_probabilities(model, dataloader, device, num_classes):
 
 
 @torch.no_grad()
-def collect_all_model_probs(models_dict, dataloader, device, num_classes):
+def collect_all_model_probs(models_dict, dataloader, device, num_classes, *, tta_hflip: bool = False):
     order = list(models_dict.keys())
     parts = []
     labels = None
     for name in order:
-        p, y = collect_probabilities(models_dict[name], dataloader, device, num_classes)
+        p, y = collect_probabilities(
+            models_dict[name],
+            dataloader,
+            device,
+            num_classes,
+            tta_hflip=tta_hflip,
+        )
         parts.append(p)
         if labels is None:
             labels = y
@@ -224,6 +250,122 @@ def soft_vote_accuracy(prob_list, y_true):
     mean_p = np.mean(np.stack(prob_list, axis=0), axis=0)
     pred = mean_p.argmax(axis=1)
     return accuracy_score(y_true, pred), f1_score(y_true, pred, average="macro")
+
+
+def _normalize_weights(weights) -> np.ndarray:
+    arr = np.asarray(weights, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError("weights must be a 1D sequence")
+    if np.any(arr < 0):
+        raise ValueError("weights must be non-negative")
+    total = float(arr.sum())
+    if total <= 0:
+        raise ValueError("weights must sum to a positive value")
+    return arr / total
+
+
+def weighted_probability_average(prob_list, weights=None) -> np.ndarray:
+    stacked = np.stack(prob_list, axis=0)
+    if weights is None:
+        weights = np.ones(stacked.shape[0], dtype=np.float64)
+    weights = _normalize_weights(weights)
+    if len(weights) != stacked.shape[0]:
+        raise ValueError(
+            f"weights length {len(weights)} does not match {stacked.shape[0]} models"
+        )
+    return np.tensordot(weights, stacked, axes=(0, 0))
+
+
+def probability_metrics(probs, y_true) -> dict[str, float]:
+    probs = np.asarray(probs, dtype=np.float64)
+    row_sums = probs.sum(axis=1, keepdims=True)
+    probs = np.divide(
+        probs,
+        row_sums,
+        out=np.full_like(probs, 1.0 / probs.shape[1]),
+        where=row_sums > 0,
+    )
+    probs = np.clip(probs, 1e-15, 1.0)
+    probs = probs / probs.sum(axis=1, keepdims=True)
+    pred = probs.argmax(axis=1)
+    labels = list(range(probs.shape[1]))
+    return {
+        "accuracy": float(accuracy_score(y_true, pred)),
+        "macro_f1": float(f1_score(y_true, pred, average="macro")),
+        "log_loss": float(log_loss(y_true, probs, labels=labels)),
+    }
+
+
+def weighted_soft_vote_accuracy(prob_list, y_true, weights):
+    probs = weighted_probability_average(prob_list, weights)
+    metrics = probability_metrics(probs, y_true)
+    return metrics["accuracy"], metrics["macro_f1"]
+
+
+def optimize_soft_vote_weights(
+    prob_list,
+    y_true,
+    *,
+    metric: str = "macro_f1",
+    n_trials: int = 4096,
+    seed: int = 42,
+) -> tuple[np.ndarray, dict[str, float]]:
+    """Random-search non-negative soft-vote weights on validation probabilities."""
+    if metric not in {"macro_f1", "accuracy"}:
+        raise ValueError("metric must be 'macro_f1' or 'accuracy'")
+    if not prob_list:
+        raise ValueError("prob_list must not be empty")
+    n_models = len(prob_list)
+    if n_models == 1:
+        weights = np.ones(1, dtype=np.float64)
+        return weights, probability_metrics(prob_list[0], y_true)
+
+    per_model_scores = np.array(
+        [
+            max(probability_metrics(prob, y_true)[metric], 1e-6)
+            for prob in prob_list
+        ],
+        dtype=np.float64,
+    )
+    candidates: list[np.ndarray] = [
+        np.ones(n_models, dtype=np.float64),
+        per_model_scores,
+        per_model_scores**2,
+    ]
+    candidates.extend(np.eye(n_models, dtype=np.float64))
+    if n_models > 2:
+        for i in range(n_models):
+            leave_one_out = np.ones(n_models, dtype=np.float64)
+            leave_one_out[i] = 0.0
+            candidates.append(leave_one_out)
+
+    rng = np.random.default_rng(seed)
+    if n_trials > 0:
+        candidates.extend(rng.dirichlet(np.ones(n_models), size=n_trials))
+        score_alpha = _normalize_weights(per_model_scores) * n_models
+        candidates.extend(rng.dirichlet(np.maximum(score_alpha, 0.2), size=n_trials // 2))
+
+    best_weights = _normalize_weights(candidates[0])
+    best_metrics = probability_metrics(
+        weighted_probability_average(prob_list, best_weights),
+        y_true,
+    )
+
+    def rank(metrics: dict[str, float]) -> tuple[float, float, float]:
+        secondary = "accuracy" if metric == "macro_f1" else "macro_f1"
+        return metrics[metric], metrics[secondary], -metrics["log_loss"]
+
+    best_rank = rank(best_metrics)
+    for candidate in candidates[1:]:
+        weights = _normalize_weights(candidate)
+        probs = weighted_probability_average(prob_list, weights)
+        metrics = probability_metrics(probs, y_true)
+        candidate_rank = rank(metrics)
+        if candidate_rank > best_rank:
+            best_weights = weights
+            best_metrics = metrics
+            best_rank = candidate_rank
+    return best_weights, best_metrics
 
 
 def hard_vote_accuracy(prob_list, y_true):

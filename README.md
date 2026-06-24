@@ -1,8 +1,8 @@
 # raicom
 
-基于 PyTorch 与 [timm](https://github.com/huggingface/pytorch-image-models) 的天气图像分类实验仓库。支持单模型训练、两阶段微调、四模型集成 + XGBoost 元分类器。
+基于 PyTorch 与 [timm](https://github.com/huggingface/pytorch-image-models) 的天气图像分类实验仓库。支持单模型训练、两阶段微调、小参数强模型集成、weighted soft vote、TTA 与 XGBoost 元分类器。
 
-ssh的脚本稍后奉上
+AutoDL / Linux 训练脚本在 `autodl_scripts/` 目录。
 
 ---
 
@@ -14,7 +14,9 @@ raicom/
 │   ├── train_*.py        # 各 timm 骨干的单模型训练脚本
 │   ├── train_gdn.py      # GDN 自定义模型
 │   ├── train_ensemble_four_models_meta.py
+│   ├── train_small_strong_ensemble.py
 │   └── check_model_size.py
+├── autodl_scripts/       # AutoDL / Linux 批量训练脚本
 ├── src/raicom/           # 共享训练库（pip install -e . 后可直接 import）
 │   ├── classifier.py     # timm 单模型完整训练流程
 │   ├── two_phase.py      # 两阶段微调（冻结骨干 → 全网络）
@@ -182,10 +184,37 @@ python scripts/train_fastvit_s24.py --head-lr 5e-4 --finetune-lr 2e-7
 python scripts/train_fastvit_s24.py --early-stop 8 --early-stop-min-delta 1e-4
 ```
 
-### 四模型集成 + XGBoost(已废弃)
+### 小参数强模型集成 + XGBoost
+
+默认 `balanced` 方案会训练 5 个参数量较小但互补性强的 timm 骨干：
+
+| 方案 | 骨干 |
+| ---- | ---- |
+| `balanced` | `convnextv2_nano`、`mobilenetv4_hybrid_medium`、`fastvit_sa24`、`mambaout_kobe`、`tiny_vit_11m_224` |
+| `lite` | 更快的小模型组合，适合快速试榜或显存较小的机器 |
+| `strong` | 在 `balanced` 基础上额外加入 `caformer_s18` |
+| `legacy` | 保留旧 notebook 风格四模型 baseline |
+
+推荐入口：
 
 ```powershell
-python scripts/train_ensemble_four_models_meta.py
+python scripts/train_small_strong_ensemble.py --ensemble balanced
+```
+
+常用 Kaggle 风格开关：
+
+```powershell
+# 启用水平翻转 TTA
+python scripts/train_small_strong_ensemble.py --ensemble balanced --tta-hflip
+
+# 复用已有 ensemble_ckpt_*.pth，直接重新收集概率、搜索权重和训练 meta learner
+python scripts/train_small_strong_ensemble.py --ensemble balanced --reuse-checkpoints
+
+# 手动指定 timm preset 或完整 timm 模型名
+python scripts/train_small_strong_ensemble.py --models convnextv2_pico fastvit_s12 repvit_m1_1 tiny_vit_5m_224
+
+# 离线调试入口，不下载预训练权重、不使用 GPU
+python scripts/train_small_strong_ensemble.py --models convnextv2_atto --head-epochs 0 --finetune-epochs 0 --no-pretrained --cpu
 ```
 
 ### GDN 自定义模型
@@ -198,6 +227,23 @@ python scripts/train_gdn.py
 
 ```powershell
 python scripts/check_model_size.py --model convnextv2_nano
+```
+
+### AutoDL / Linux 脚本
+
+```bash
+cd /root/raicom/autodl_scripts
+bash install_env.sh
+bash train_ensemble.sh
+```
+
+常用覆盖：
+
+```bash
+ENSEMBLE=balanced TTA_HFLIP=1 bash train_ensemble.sh
+ENSEMBLE=lite RUN_NAME=ensemble_lite bash train_ensemble.sh
+REUSE_CHECKPOINTS=1 bash train_ensemble.sh
+MODELS="convnextv2_pico fastvit_s12 repvit_m1_1 tiny_vit_5m_224" bash train_ensemble.sh
 ```
 
 ---
@@ -221,6 +267,7 @@ python scripts/check_model_size.py --model convnextv2_nano
 - **早停** 阶段 2 默认启用，patience = 8，min_delta = 1e-4；`--early-stop 0` 可关闭
 - **数据划分** 训练 / 验证 / 测试 = 8 : 1 : 1（分层采样，seed=42）
 - **数据增强** 训练集 RandomHorizontalFlip + RandomRotation(10)；验证 / 测试集无随机增强
+- **集成推理** 支持普通 soft vote、验证集随机搜索 weighted soft vote、hard vote、XGBoost meta learner；`--tta-hflip` 可启用水平翻转 TTA
 
 ---
 
@@ -235,6 +282,7 @@ python scripts/check_model_size.py --model convnextv2_nano
 | 训练曲线    | `checkpoints/fastvit_s24.png`           |
 | 集成各骨干权重 | `checkpoints/ensemble_ckpt_*.pth`       |
 | 集成元分类器  | `checkpoints/ensemble_meta_xgboost.pkl` |
+| 集成报告    | `checkpoints/ensemble_report.json`      |
 
 
 验证集准确率每轮提升时自动覆盖保存最佳权重；训练结束后加载最佳权重在测试集上评估。
@@ -258,7 +306,7 @@ ClassifierTrainConfig(
 
 3. 两阶段训练、drop_rate、最佳权重保存等逻辑自动生效，无需改 `src/raicom/`。
 4. 若要修改全局默认（84+16 epoch、学习率、dropout 等），改 `src/raicom/two_phase.py` 或 `src/raicom/timm_factory.py`。
-5. 加入四模型集成：编辑 `scripts/train_ensemble_four_models_meta.py` 中的 `BACKBONE_SPECS`。
+5. 加入集成：优先直接用 `python scripts/train_small_strong_ensemble.py --models preset_a preset_b ...`；若要长期保留为内置方案，编辑 `scripts/train_ensemble_four_models_meta.py` 中的 `ENSEMBLE_PRESETS`。
 
 ---
 
@@ -283,6 +331,12 @@ python -c "import torch; print(torch.cuda.is_available())"
 **timm 模型下载慢**
 
 集成脚本已设置 Hugging Face 镜像；也可手动配置 `HF_ENDPOINT=https://hf-mirror.com`。
+
+**本机只想调试流程，不想下载权重**
+
+```powershell
+python scripts/train_small_strong_ensemble.py --models convnextv2_atto --head-epochs 0 --finetune-epochs 0 --no-pretrained --cpu
+```
 
 ---
 
