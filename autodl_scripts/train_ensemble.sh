@@ -18,7 +18,8 @@ HEAD_EPOCHS="${HEAD_EPOCHS:-}"
 FINETUNE_EPOCHS="${FINETUNE_EPOCHS:-}"
 HEAD_LR="${HEAD_LR:-}"
 FINETUNE_LR="${FINETUNE_LR:-}"
-EARLY_STOP="${EARLY_STOP:-0}"
+EARLY_STOP="${EARLY_STOP:-}"
+EARLY_STOP_MIN_DELTA="${EARLY_STOP_MIN_DELTA:-}"
 CUDA_DEVICE="${CUDA_DEVICE:-0}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -31,7 +32,6 @@ cmd=(
   --data-root "$DATA_ROOT"
   --output-dir "$OUTPUT_DIR"
   --batch-size "$BATCH_SIZE"
-  --early-stop "$EARLY_STOP"
   --cuda-device "$CUDA_DEVICE"
 )
 
@@ -39,6 +39,8 @@ cmd=(
 [[ -z "$FINETUNE_EPOCHS" ]] || cmd+=(--finetune-epochs "$FINETUNE_EPOCHS")
 [[ -z "$HEAD_LR" ]] || cmd+=(--head-lr "$HEAD_LR")
 [[ -z "$FINETUNE_LR" ]] || cmd+=(--finetune-lr "$FINETUNE_LR")
+[[ -z "$EARLY_STOP" ]] || cmd+=(--early-stop "$EARLY_STOP")
+[[ -z "$EARLY_STOP_MIN_DELTA" ]] || cmd+=(--early-stop-min-delta "$EARLY_STOP_MIN_DELTA")
 
 if [[ -n "$EXTRA_ARGS" ]]; then
   # shellcheck disable=SC2206

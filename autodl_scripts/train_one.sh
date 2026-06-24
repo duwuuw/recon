@@ -9,16 +9,25 @@ if [[ -f "$SCRIPT_DIR/autodl_env.sh" ]]; then
   source "$SCRIPT_DIR/autodl_env.sh"
 fi
 
+SCRIPT_NAME="${SCRIPT_NAME:-}"
+MODEL_PRESET="${MODEL_PRESET:-}"
+if [[ -n "$MODEL_PRESET" && -z "$SCRIPT_NAME" ]]; then
+  SCRIPT_NAME="train_timm_preset.py"
+fi
 SCRIPT_NAME="${SCRIPT_NAME:-train_convnext11.py}"
 DATA_ROOT="${DATA_ROOT:-${RAICOM_DATA_ROOT:-/root/autodl-tmp/data}}"
 RUN_ROOT="${RUN_ROOT:-/root/autodl-tmp/raicom_runs}"
-RUN_NAME="${RUN_NAME:-${SCRIPT_NAME%.py}_$(date +%Y%m%d_%H%M%S)}"
+RUN_STEM="${MODEL_PRESET:-${SCRIPT_NAME%.py}}"
+RUN_NAME="${RUN_NAME:-${RUN_STEM}_$(date +%Y%m%d_%H%M%S)}"
 OUTPUT_DIR="${OUTPUT_DIR:-$RUN_ROOT/$RUN_NAME}"
 BATCH_SIZE="${BATCH_SIZE:-}"
 HEAD_EPOCHS="${HEAD_EPOCHS:-}"
 FINETUNE_EPOCHS="${FINETUNE_EPOCHS:-}"
 HEAD_LR="${HEAD_LR:-}"
 FINETUNE_LR="${FINETUNE_LR:-}"
+EARLY_STOP="${EARLY_STOP:-}"
+EARLY_STOP_MIN_DELTA="${EARLY_STOP_MIN_DELTA:-}"
+IMAGE_SIZE="${IMAGE_SIZE:-}"
 NUM_WORKERS="${NUM_WORKERS:-4}"
 SEED="${SEED:-}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
@@ -33,7 +42,11 @@ fi
 mkdir -p "$OUTPUT_DIR/logs"
 cd "$PROJECT_DIR"
 
-cmd=(python "$SCRIPT_PATH" --data-root "$DATA_ROOT" --output-dir "$OUTPUT_DIR")
+cmd=(python "$SCRIPT_PATH")
+if [[ -n "$MODEL_PRESET" ]]; then
+  cmd+=("$MODEL_PRESET")
+fi
+cmd+=(--data-root "$DATA_ROOT" --output-dir "$OUTPUT_DIR")
 
 append_arg() {
   local flag="$1"
@@ -47,6 +60,9 @@ append_arg --head-epochs "$HEAD_EPOCHS"
 append_arg --finetune-epochs "$FINETUNE_EPOCHS"
 append_arg --head-lr "$HEAD_LR"
 append_arg --finetune-lr "$FINETUNE_LR"
+append_arg --early-stop "$EARLY_STOP"
+append_arg --early-stop-min-delta "$EARLY_STOP_MIN_DELTA"
+append_arg --image-size "$IMAGE_SIZE"
 
 if [[ "$SCRIPT_NAME" != "train_gdn.py" ]]; then
   append_arg --num-workers "$NUM_WORKERS"
@@ -60,6 +76,9 @@ if [[ -n "$EXTRA_ARGS" ]]; then
 fi
 
 echo "[train_one] project: $PROJECT_DIR"
+if [[ -n "$MODEL_PRESET" ]]; then
+  echo "[train_one] preset: $MODEL_PRESET"
+fi
 echo "[train_one] data: $DATA_ROOT"
 echo "[train_one] output: $OUTPUT_DIR"
 printf '%q ' "${cmd[@]}" | tee "$OUTPUT_DIR/logs/command.txt"

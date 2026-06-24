@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, f1_score
-from xgboost import XGBClassifier
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -28,7 +27,12 @@ from raicom.ensemble import (
     train_single_backbone,
 )
 from raicom.paths import default_data_root
-from raicom.two_phase import DEFAULT_TWO_PHASE, TwoPhaseSchedule
+from raicom.two_phase import (
+    DEFAULT_TWO_PHASE,
+    DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    DEFAULT_EARLY_STOPPING_PATIENCE,
+    TwoPhaseSchedule,
+)
 
 BACKBONE_SPECS = [
     ("mambaout_kobe", "mambaout_kobe.in1k"),
@@ -47,7 +51,17 @@ def parse_args():
     p.add_argument("--finetune-epochs", type=int, default=DEFAULT_TWO_PHASE.finetune_epochs)
     p.add_argument("--head-lr", type=float, default=DEFAULT_TWO_PHASE.head_lr)
     p.add_argument("--finetune-lr", type=float, default=DEFAULT_TWO_PHASE.finetune_lr)
-    p.add_argument("--early-stop", type=int, default=0, help="0 关闭早停（两阶段训练建议关闭）")
+    p.add_argument(
+        "--early-stop",
+        type=int,
+        default=DEFAULT_EARLY_STOPPING_PATIENCE,
+        help="阶段2早停 patience；0 关闭",
+    )
+    p.add_argument(
+        "--early-stop-min-delta",
+        type=float,
+        default=DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    )
     p.add_argument("--cuda-device", type=int, default=0)
     p.add_argument(
         "--ensemble-f1-each-epoch",
@@ -76,6 +90,8 @@ def setup_device(cuda_device: int) -> torch.device:
 def main():
     os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
     args = parse_args()
+    from xgboost import XGBClassifier
+
     torch.manual_seed(2023)
     np.random.seed(2023)
 
@@ -137,7 +153,7 @@ def main():
             ensemble_f1_log=ensemble_vote_val_macro_f1_log,
             run_tag=short_name,
             early_stopping_patience=args.early_stop,
-            early_stopping_min_delta=1e-4,
+            early_stopping_min_delta=args.early_stop_min_delta,
             ensemble_val_f1_each_epoch=args.ensemble_f1_each_epoch,
         )
         trained_models[short_name] = m

@@ -6,7 +6,11 @@ import argparse
 from pathlib import Path
 
 from raicom.classifier import ClassifierTrainConfig, default_output_dir, train_classifier
-from raicom.two_phase import TwoPhaseSchedule
+from raicom.two_phase import (
+    DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    DEFAULT_EARLY_STOPPING_PATIENCE,
+    TwoPhaseSchedule,
+)
 
 
 def add_classifier_args(parser: argparse.ArgumentParser) -> None:
@@ -25,20 +29,38 @@ def add_classifier_args(parser: argparse.ArgumentParser) -> None:
         "--head-epochs",
         type=int,
         default=None,
-        help="阶段1 epoch 数（仅训练分类头，默认 80）",
+        help="阶段1 epoch 数（仅训练分类头，默认 84）",
     )
     parser.add_argument(
         "--finetune-epochs",
         type=int,
         default=None,
-        help="阶段2 epoch 数（全网络微调，默认 20）",
+        help="阶段2 epoch 数（全网络微调，默认 16）",
     )
     parser.add_argument("--head-lr", type=float, default=None, help="阶段1 学习率（默认 5e-4）")
     parser.add_argument(
-        "--finetune-lr", type=float, default=None, help="阶段2 学习率（默认 1e-6）"
+        "--finetune-lr", type=float, default=None, help="阶段2 学习率（默认 2e-7）"
+    )
+    parser.add_argument(
+        "--early-stop",
+        type=int,
+        default=None,
+        help=f"阶段2早停 patience（默认 {DEFAULT_EARLY_STOPPING_PATIENCE}，0 关闭）",
+    )
+    parser.add_argument(
+        "--early-stop-min-delta",
+        type=float,
+        default=None,
+        help=f"阶段2早停最小提升（默认 {DEFAULT_EARLY_STOPPING_MIN_DELTA:g}）",
     )
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument(
+        "--image-size",
+        type=int,
+        default=None,
+        help="Input resize size in pixels (default comes from the model preset, usually 224).",
+    )
     parser.add_argument("--show-plots", action="store_true")
     parser.add_argument("--seed", type=int, default=None)
 
@@ -73,10 +95,17 @@ def build_config(defaults: ClassifierTrainConfig, args: argparse.Namespace) -> C
         model_kwargs=dict(defaults.model_kwargs),
         num_classes=defaults.num_classes,
         num_workers=args.num_workers,
+        image_size=args.image_size if args.image_size is not None else defaults.image_size,
         output_dir=args.output_dir or defaults.output_dir or default_output_dir(),
         data_root=args.data_root or defaults.data_root,
         show_plots=args.show_plots,
         print_test_report=defaults.print_test_report,
+        early_stopping_patience=args.early_stop
+        if args.early_stop is not None
+        else defaults.early_stopping_patience,
+        early_stopping_min_delta=args.early_stop_min_delta
+        if args.early_stop_min_delta is not None
+        else defaults.early_stopping_min_delta,
         two_phase=two_phase,
     )
 

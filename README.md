@@ -141,22 +141,31 @@ python scripts/train_resnet18.py
 **当前可用脚本：**
 
 
-| 脚本                           | timm 模型                      |
-| ---------------------------- | ---------------------------- |
-| `train_convnext11.py`        | convnextv2_nano              |
-| `train_efficientnet.py`      | tf_efficientnetv2_s          |
-| `train_dinov2_small.py`      | vit_small_patch14_dinov2     |
-| `train_vit11.py`             | vit_base_patch16_rope_224    |
-| `train_resnet18.py`          | ecaresnet50d                 |
-| `train_mambaout_kobe.py`     | mambaout_kobe                |
-| `train_mambaout_small_rw.py` | mambaout_small_rw            |
-| `train_mobilenetv4.py`       | mobilenetv4_hybrid_medium    |
-| `train_mobilenetv4_hyper.py` | mobilenetv4_hybrid_large     |
-| `train_fastvit_s24.py`       | fastvit_sa24.apple_dist_in1k |
-| `train_fastvit_sa36.py`      | fastvit_sa36.apple_dist_in1k |
-| `train_fasternet.py`         | fasternet_t2                 |
-| `train_repvit.py`            | repvit_m1_5                  |
-| `train_repvit_m2.py`         | repvit_m2_3                  |
+| 脚本                           | 用途 |
+| ---------------------------- | ---- |
+| `train_timm_preset.py <preset>` | 30M 参数以内 timm SOTA 小/中模型预设库，覆盖 ConvNeXtV2、MobileNetV4 纯 CNN / Hybrid、FastViT、EfficientViT、MaxViT、CoAtNet、EfficientFormerV2、EdgeNeXt、FasterNet、RepViT、MambaOut、TinyViT、EVA02、DINOv2、DeiT3、MobileViTv2、MobileOne、CAFormer、ConvFormer、SwiftFormer 等 |
+| `train_convnext11.py`        | 历史独立脚本：convnextv2_nano |
+| `train_efficientnet.py`      | 历史独立脚本：tf_efficientnetv2_s |
+| `train_dinov2_small.py`      | 历史独立脚本：vit_small_patch14_dinov2 |
+| `train_vit11.py`             | 历史独立脚本：vit_base_patch16_rope_224 |
+| `train_resnet18.py`          | 历史独立脚本：ecaresnet50d |
+| 其他 `train_*.py`            | 旧实验入口仍保留，推荐新模型优先用 preset |
+
+查看全部 preset：
+
+```powershell
+python scripts/train_timm_preset.py --list
+```
+
+训练示例：
+
+```powershell
+python scripts/train_timm_preset.py convnextv2_tiny
+python scripts/train_timm_preset.py mobilenetv4_conv_medium
+python scripts/train_timm_preset.py mobilenetv4_hybrid_medium
+python scripts/train_timm_preset.py fastvit_sa24
+python scripts/train_timm_preset.py dinov2_small_reg4
+```
 
 
 ### 常用命令行参数(懒得调超参数的话就按照单模型训练那里的命令来就行了)
@@ -167,8 +176,10 @@ python scripts/train_fastvit_s24.py --help
 python scripts/train_fastvit_s24.py --data-root D:\path\to\dataset
 python scripts/train_fastvit_s24.py --output-dir checkpoints
 python scripts/train_fastvit_s24.py --batch-size 16
-python scripts/train_fastvit_s24.py --head-epochs 80 --finetune-epochs 20
-python scripts/train_fastvit_s24.py --head-lr 5e-4 --finetune-lr 1e-6
+python scripts/train_fastvit_s24.py --image-size 224
+python scripts/train_fastvit_s24.py --head-epochs 84 --finetune-epochs 16
+python scripts/train_fastvit_s24.py --head-lr 5e-4 --finetune-lr 2e-7
+python scripts/train_fastvit_s24.py --early-stop 8 --early-stop-min-delta 1e-4
 ```
 
 ### 四模型集成 + XGBoost(已废弃)
@@ -193,13 +204,13 @@ python scripts/check_model_size.py --model convnextv2_nano
 
 ## 训练策略
 
-所有 timm 单模型脚本默认采用 **两阶段微调**（配置在 `src/raicom/two_phase.py`）：
+所有训练脚本默认采用 **两阶段微调**（配置在 `src/raicom/two_phase.py`）：
 
 
 | 阶段   | Epoch  | 可训练部分 | 学习率  | 调度器                          |
 | ---- | ------ | ----- | ---- | ---------------------------- |
-| 阶段 1 | 1–80   | 仅分类头  | 5e-4 | CosineAnnealing，最低 lr = 5e-7 |
-| 阶段 2 | 81–100 | 全网络   | 1e-6 | CosineAnnealing，最低 lr = 1e-9 |
+| 阶段 1 | 1–84   | 仅分类头  | 5e-4 | CosineAnnealing，最低 lr = 5e-7 |
+| 阶段 2 | 85–100 | 全网络   | 2e-7 | CosineAnnealing，最低 lr = 2e-10 |
 
 
 其他默认设置：
@@ -207,6 +218,7 @@ python scripts/check_model_size.py --model convnextv2_nano
 - **MixUp** alpha = 0.205（GDN 不使用 MixUp）
 - **drop_rate** = 0.1（通过 `src/raicom/timm_factory.py` 统一传入 timm）
 - **优化器** AdamW，weight_decay = 2.5e-4（各脚本可单独覆盖）
+- **早停** 阶段 2 默认启用，patience = 8，min_delta = 1e-4；`--early-stop 0` 可关闭
 - **数据划分** 训练 / 验证 / 测试 = 8 : 1 : 1（分层采样，seed=42）
 - **数据增强** 训练集 RandomHorizontalFlip + RandomRotation(10)；验证 / 测试集无随机增强
 
@@ -231,7 +243,8 @@ python scripts/check_model_size.py --model convnextv2_nano
 
 ## 新增模型
 
-1. 复制任意 `scripts/train_*.py`，改三处即可：(timm库里面模型要自己去查，假如名字不对会报错)
+1. timm SOTA 小/中模型优先加到 `src/raicom/timm_presets.py`，然后用 `scripts/train_timm_preset.py <preset>` 训练；AutoDL 批量脚本也会使用同一批 preset 名称。
+2. 若只想快速复制独立脚本，也可以复制任意 `scripts/train_*.py`，改三处即可：(timm库里面模型要自己去查，假如名字不对会报错)
 
 ```python
 ClassifierTrainConfig(
@@ -239,12 +252,13 @@ ClassifierTrainConfig(
     checkpoint_name="your_model.pth",      # 权重文件名
     curves_name="your_model.png",          # 曲线图文件名
     batch_size=32,                         # 按需调整
+    image_size=224,                        # MaxViT 等固定 256 输入模型要改成 256
 )
 ```
 
-1. 两阶段训练、drop_rate、最佳权重保存等逻辑自动生效，无需改 `src/raicom/`。
-2. 若要修改全局默认（80+20 epoch、学习率、dropout 等），改 `src/raicom/two_phase.py` 或 `src/raicom/timm_factory.py`。
-3. 加入四模型集成：编辑 `scripts/train_ensemble_four_models_meta.py` 中的 `BACKBONE_SPECS`。
+3. 两阶段训练、drop_rate、最佳权重保存等逻辑自动生效，无需改 `src/raicom/`。
+4. 若要修改全局默认（84+16 epoch、学习率、dropout 等），改 `src/raicom/two_phase.py` 或 `src/raicom/timm_factory.py`。
+5. 加入四模型集成：编辑 `scripts/train_ensemble_four_models_meta.py` 中的 `BACKBONE_SPECS`。
 
 ---
 

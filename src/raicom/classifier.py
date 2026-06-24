@@ -24,6 +24,9 @@ from raicom.training import (
 )
 from raicom.two_phase import (
     DEFAULT_TWO_PHASE,
+    DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    DEFAULT_EARLY_STOPPING_PATIENCE,
+    EarlyStopper,
     TwoPhaseSchedule,
     build_cosine_scheduler,
     build_optimizer,
@@ -56,10 +59,13 @@ class ClassifierTrainConfig:
     model_kwargs: dict[str, object] = field(default_factory=dict)
     num_classes: int = NUM_CLASSES
     num_workers: int = 0
+    image_size: int = 224
     output_dir: Path | None = None
     data_root: str | None = None
     show_plots: bool = False
     print_test_report: bool = True
+    early_stopping_patience: int = DEFAULT_EARLY_STOPPING_PATIENCE
+    early_stopping_min_delta: float = DEFAULT_EARLY_STOPPING_MIN_DELTA
     two_phase: TwoPhaseSchedule = field(default_factory=TwoPhaseSchedule)
 
     @property
@@ -140,6 +146,7 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
         data_root,
         batch_size=cfg.batch_size,
         num_workers=cfg.num_workers,
+        image_size=cfg.image_size,
     )
     if dataset_num_classes != cfg.num_classes:
         raise ValueError(
@@ -218,6 +225,12 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
     print("=" * 60 + "\n")
     unfreeze_all(model)
     print(f"阶段2 可训练参数量: {count_trainable_parameters(model):,}")
+    early_stopper = EarlyStopper(
+        patience=cfg.early_stopping_patience,
+        min_delta=cfg.early_stopping_min_delta,
+        best_metric=tracker.best_metric,
+    )
+    print(early_stopper.describe())
 
     optimizer = build_optimizer(
         model,
@@ -256,6 +269,12 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
         val_accs.append(va_acc)
         if macro_f1 is not None:
             val_f1s.append(macro_f1)
+        if early_stopper.step(va_acc, epoch):
+            print(
+                f"  -> 早停：阶段2 val_acc 连续 {early_stopper.patience} 轮未超过历史最佳 "
+                f"(best={early_stopper.best_metric:.4f})"
+            )
+            break
 
     meta = load_checkpoint(ckpt_path, model, device)
     if meta is None:

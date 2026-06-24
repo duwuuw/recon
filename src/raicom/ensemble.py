@@ -16,6 +16,9 @@ from raicom.timm_factory import create_timm_classifier
 from raicom.training import train_one_epoch, validate
 from raicom.two_phase import (
     DEFAULT_TWO_PHASE,
+    DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    DEFAULT_EARLY_STOPPING_PATIENCE,
+    EarlyStopper,
     TwoPhaseSchedule,
     build_cosine_scheduler,
     build_optimizer,
@@ -40,8 +43,8 @@ def train_single_backbone(
     val_loader_ensemble=None,
     ensemble_f1_log=None,
     run_tag: str = "",
-    early_stopping_patience: int = 0,
-    early_stopping_min_delta: float = 1e-4,
+    early_stopping_patience: int = DEFAULT_EARLY_STOPPING_PATIENCE,
+    early_stopping_min_delta: float = DEFAULT_EARLY_STOPPING_MIN_DELTA,
     ensemble_val_f1_each_epoch: bool = False,
 ):
     schedule = two_phase or DEFAULT_TWO_PHASE
@@ -63,13 +66,13 @@ def train_single_backbone(
     )
 
     best_acc = 0.0
-    epochs_no_improve = 0
     stopped_early = False
+    early_stopper: EarlyStopper | None = None
     history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
     total_epochs = schedule.total_epochs
 
-    def _epoch_step(epoch: int, phase_tag: str) -> bool:
-        nonlocal best_acc, epochs_no_improve, stopped_early
+    def _epoch_step(epoch: int, phase_tag: str, *, allow_early_stop: bool) -> bool:
+        nonlocal best_acc, stopped_early
         tr_loss, tr_acc = train_one_epoch(
             model, train_loader, criterion, optimizer, device, epoch, mixup_alpha=0.205
         )
@@ -123,31 +126,34 @@ def train_single_backbone(
 
         if va_acc > best_acc + early_stopping_min_delta:
             best_acc = va_acc
-            epochs_no_improve = 0
             if save_path:
                 path = Path(save_path)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 torch.save(model.state_dict(), path)
                 print(f"  -> 保存最佳 {path} (val_acc={va_acc:.4f})")
-        else:
-            epochs_no_improve += 1
-            if early_stopping_patience > 0 and epochs_no_improve >= early_stopping_patience:
-                print(
-                    f"  -> 早停：val_acc 已连续 {early_stopping_patience} 轮未超过历史最佳 "
-                    f"(best={best_acc:.4f})"
-                )
-                stopped_early = True
-                return True
+        if allow_early_stop and early_stopper is not None and early_stopper.step(va_acc, epoch):
+            print(
+                f"  -> 早停：阶段2 val_acc 连续 {early_stopper.patience} 轮未超过历史最佳 "
+                f"(best={early_stopper.best_metric:.4f})"
+            )
+            stopped_early = True
+            return True
         return False
 
     for epoch in range(1, schedule.head_epochs + 1):
-        if _epoch_step(epoch, "[阶段1]"):
+        if _epoch_step(epoch, "[阶段1]", allow_early_stop=False):
             break
 
     if not stopped_early and schedule.finetune_epochs > 0:
         print(f"\n[{model_name}] 切换至阶段2：解冻骨干网络\n")
         unfreeze_all(model)
         print(f"[{model_name}] 阶段2 可训练参数: {count_trainable_parameters(model):,}")
+        early_stopper = EarlyStopper(
+            patience=early_stopping_patience,
+            min_delta=early_stopping_min_delta,
+            best_metric=best_acc,
+        )
+        print(f"[{model_name}] {early_stopper.describe()}")
         optimizer = build_optimizer(
             model, lr=schedule.finetune_lr, weight_decay=weight_decay, optimizer_name="adamw"
         )
@@ -159,7 +165,11 @@ def train_single_backbone(
         for offset, epoch in enumerate(
             range(schedule.head_epochs + 1, total_epochs + 1), start=1
         ):
-            if _epoch_step(epoch, f"[阶段2 {offset}/{schedule.finetune_epochs}]"):
+            if _epoch_step(
+                epoch,
+                f"[阶段2 {offset}/{schedule.finetune_epochs}]",
+                allow_early_stop=True,
+            ):
                 break
 
     history["early_stopped"] = stopped_early

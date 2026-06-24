@@ -55,11 +55,12 @@ class SubsetWithTransform(Dataset):
         return x, y
 
 
-def weather_transforms():
+def weather_transforms(image_size: int = 224):
     """Train / eval transforms matching the original notebooks."""
+    resize_shape = (image_size, image_size)
     transform_train = transforms.Compose(
         [
-            transforms.Resize((224, 224)),
+            transforms.Resize(resize_shape),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(10),
             transforms.ToTensor(),
@@ -68,7 +69,7 @@ def weather_transforms():
     )
     transform_eval = transforms.Compose(
         [
-            transforms.Resize((224, 224)),
+            transforms.Resize(resize_shape),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
         ]
@@ -81,11 +82,12 @@ def build_imagefolder_loaders(
     batch_size: int = 32,
     num_workers: int = 0,
     pin_memory: bool | None = None,
+    image_size: int = 224,
 ):
     """Return train/val/test loaders, num_classes, and class names."""
     import torch
 
-    transform_train, transform_eval = weather_transforms()
+    transform_train, transform_eval = weather_transforms(image_size=image_size)
     full_dataset = datasets.ImageFolder(root=data_root, transform=None)
     num_classes = len(full_dataset.classes)
     train_idx, val_idx, test_idx = stratified_split(full_dataset, random_seed=42)

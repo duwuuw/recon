@@ -69,6 +69,20 @@ SCRIPT_NAME=train_mambaout_kobe.py bash train_one.sh
 SCRIPT_NAME=train_mobilenetv4_hyper.py bash train_one.sh
 ```
 
+使用 30M 以内 timm preset：
+
+```bash
+MODEL_PRESET=convnextv2_tiny bash train_one.sh
+MODEL_PRESET=mobilenetv4_conv_medium bash train_one.sh
+MODEL_PRESET=fastvit_sa24 bash train_one.sh
+```
+
+查看全部 preset：
+
+```bash
+python ../scripts/train_timm_preset.py --list
+```
+
 带常用参数：
 
 ```bash
@@ -76,10 +90,12 @@ SCRIPT_NAME=train_fastvit_s24.py \
 DATA_ROOT=/root/autodl-tmp/data \
 RUN_NAME=fastvit_s24_baseline \
 BATCH_SIZE=32 \
-HEAD_EPOCHS=80 \
-FINETUNE_EPOCHS=20 \
+IMAGE_SIZE=224 \
+HEAD_EPOCHS=84 \
+FINETUNE_EPOCHS=16 \
 HEAD_LR=5e-4 \
-FINETUNE_LR=1e-6 \
+FINETUNE_LR=2e-7 \
+EARLY_STOP=8 \
 NUM_WORKERS=4 \
 SEED=2023 \
 bash train_one.sh
@@ -93,7 +109,7 @@ DRY_RUN=1 SCRIPT_NAME=train_fastvit_s24.py bash train_one.sh
 
 ## 3. 批量训练指定模型
 
-不带参数时，顺序跑所有单模型：
+不带参数时，顺序跑所有 30M 以内 timm preset：
 
 ```bash
 bash train_all_single_models.sh
@@ -102,7 +118,7 @@ bash train_all_single_models.sh
 分工训练时，在命令行后面直接写要跑的模型名：
 
 ```bash
-bash train_all_single_models.sh convnext11 fastvit_s24 repvit_m2
+bash train_all_single_models.sh convnextv2_tiny mobilenetv4_conv_medium fastvit_sa24
 ```
 
 也支持完整脚本名：
@@ -115,31 +131,20 @@ bash train_all_single_models.sh train_convnext11.py train_fastvit_s24.py
 
 ```bash
 BATCH_SIZE=24 HEAD_EPOCHS=30 FINETUNE_EPOCHS=10 \
-bash train_all_single_models.sh convnext11 mambaout_kobe mobilenetv4_hyper
+bash train_all_single_models.sh convnextv2_tiny mambaout_tiny repvit_m2_3
 ```
 
 批量脚本也支持 dry run：
 
 ```bash
-DRY_RUN=1 bash train_all_single_models.sh convnext11 fastvit_s24 repvit_m2
+DRY_RUN=1 bash train_all_single_models.sh convnextv2_tiny fastvit_sa24 repvit_m2_3
 ```
 
 可用模型名：
 
-```text
-convnext11
-efficientnet
-vit11
-resnet18
-mambaout_kobe
-mambaout_small_rw
-mobilenetv4
-mobilenetv4_hyper
-fastvit_s24
-fastvit_sa36
-fasternet
-repvit
-repvit_m2
+```bash
+bash train_all_single_models.sh --help
+python ../scripts/train_timm_preset.py --list
 ```
 
 ## 4. 四模型集成 + XGBoost
@@ -160,10 +165,12 @@ DRY_RUN=1 bash train_ensemble.sh
 DATA_ROOT=/root/autodl-tmp/data \
 RUN_NAME=ensemble_baseline \
 BATCH_SIZE=28 \
-HEAD_EPOCHS=80 \
-FINETUNE_EPOCHS=20 \
+HEAD_EPOCHS=84 \
+FINETUNE_EPOCHS=16 \
+HEAD_LR=5e-4 \
+FINETUNE_LR=2e-7 \
 CUDA_DEVICE=0 \
-EARLY_STOP=0 \
+EARLY_STOP=8 \
 bash train_ensemble.sh
 ```
 

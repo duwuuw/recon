@@ -8,16 +8,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+DEFAULT_EARLY_STOPPING_PATIENCE = 8
+DEFAULT_EARLY_STOPPING_MIN_DELTA = 1e-4
+
 
 @dataclass
 class TwoPhaseSchedule:
     """Phase 1: classifier head only. Phase 2: full model fine-tune."""
 
-    head_epochs: int = 80
-    finetune_epochs: int = 20
+    head_epochs: int = 84
+    finetune_epochs: int = 16
     head_lr: float = 5e-4
     head_eta_min_ratio: float = 0.001
-    finetune_lr: float = 1e-6
+    finetune_lr: float = 2e-7
     finetune_eta_min_ratio: float = 0.001
 
     @property
@@ -34,6 +37,42 @@ class TwoPhaseSchedule:
 
 
 DEFAULT_TWO_PHASE = TwoPhaseSchedule()
+
+
+@dataclass
+class EarlyStopper:
+    """Validation-accuracy early stopping state."""
+
+    patience: int = DEFAULT_EARLY_STOPPING_PATIENCE
+    min_delta: float = DEFAULT_EARLY_STOPPING_MIN_DELTA
+    best_metric: float = 0.0
+    epochs_no_improve: int = 0
+    stopped_epoch: int | None = None
+
+    @property
+    def enabled(self) -> bool:
+        return self.patience > 0
+
+    def step(self, metric: float, epoch: int) -> bool:
+        if not self.enabled:
+            return False
+        if metric > self.best_metric + self.min_delta:
+            self.best_metric = metric
+            self.epochs_no_improve = 0
+            return False
+        self.epochs_no_improve += 1
+        if self.epochs_no_improve >= self.patience:
+            self.stopped_epoch = epoch
+            return True
+        return False
+
+    def describe(self) -> str:
+        if not self.enabled:
+            return "Early stopping: disabled"
+        return (
+            "Early stopping: phase 2 only, "
+            f"patience={self.patience}, min_delta={self.min_delta:g}"
+        )
 
 
 def _set_requires_grad(module: nn.Module, requires_grad: bool) -> None:

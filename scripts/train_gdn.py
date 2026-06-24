@@ -17,11 +17,13 @@ from raicom.constants import NUM_CLASSES
 from raicom.checkpoints import BestCheckpointTracker, load_checkpoint
 from raicom.classifier import default_output_dir
 from raicom.data import build_imagefolder_loaders
-from raicom.models.gdn import GDN
 from raicom.paths import default_data_root
 from raicom.training import plot_training_curves, train_one_epoch, validate
 from raicom.two_phase import (
     DEFAULT_TWO_PHASE,
+    DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    DEFAULT_EARLY_STOPPING_PATIENCE,
+    EarlyStopper,
     TwoPhaseSchedule,
     build_cosine_scheduler,
     build_optimizer,
@@ -40,6 +42,17 @@ def parse_args():
     p.add_argument("--finetune-epochs", type=int, default=DEFAULT_TWO_PHASE.finetune_epochs)
     p.add_argument("--head-lr", type=float, default=DEFAULT_TWO_PHASE.head_lr)
     p.add_argument("--finetune-lr", type=float, default=DEFAULT_TWO_PHASE.finetune_lr)
+    p.add_argument(
+        "--early-stop",
+        type=int,
+        default=DEFAULT_EARLY_STOPPING_PATIENCE,
+        help="阶段2早停 patience；0 关闭",
+    )
+    p.add_argument(
+        "--early-stop-min-delta",
+        type=float,
+        default=DEFAULT_EARLY_STOPPING_MIN_DELTA,
+    )
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--show-plots", action="store_true")
     return p.parse_args()
@@ -47,6 +60,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    from raicom.models.gdn import GDN
+
     schedule = TwoPhaseSchedule(
         head_epochs=args.head_epochs,
         finetune_epochs=args.finetune_epochs,
@@ -122,6 +137,12 @@ def main():
     print("\n切换至阶段2：解冻骨干网络\n")
     unfreeze_all(model)
     print(f"阶段2 可训练参数: {count_trainable_parameters(model):,}")
+    early_stopper = EarlyStopper(
+        patience=args.early_stop,
+        min_delta=args.early_stop_min_delta,
+        best_metric=tracker.best_metric,
+    )
+    print(early_stopper.describe())
     optimizer = build_optimizer(
         model, lr=schedule.finetune_lr, weight_decay=weight_decay, optimizer_name="adamw"
     )
@@ -151,6 +172,12 @@ def main():
         )
         if tracker.maybe_save(va_acc, model, epoch=epoch):
             print(f"  -> 保存最佳权重 {ckpt_path} (val_acc={va_acc:.4f})")
+        if early_stopper.step(va_acc, epoch):
+            print(
+                f"  -> 早停：阶段2 val_acc 连续 {early_stopper.patience} 轮未超过历史最佳 "
+                f"(best={early_stopper.best_metric:.4f})"
+            )
+            break
 
     if load_checkpoint(ckpt_path, model, device) is None:
         print("警告: 未写入 checkpoint（验证集从未提升），使用最后一轮权重做测试")
