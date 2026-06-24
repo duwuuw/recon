@@ -14,10 +14,12 @@ def create_timm_classifier(
     *,
     pretrained: bool = True,
     drop_rate: float = DEFAULT_DROP_RATE,
+    **model_kwargs,
 ):
     return timm.create_model(
         model_name,
         pretrained=pretrained,
         num_classes=num_classes,
         drop_rate=drop_rate,
+        **model_kwargs,
     )

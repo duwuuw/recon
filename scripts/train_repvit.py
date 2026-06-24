@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train ECAResNet50D (from resnet18.ipynb)."""
+"""Train RepViT-M1.5."""
 
 from __future__ import annotations
 

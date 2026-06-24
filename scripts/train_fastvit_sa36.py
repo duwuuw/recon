@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train EfficientNet V2-S (from efficientnet.ipynb)."""
+"""Train FastViT-SA36."""
 
 from __future__ import annotations
 

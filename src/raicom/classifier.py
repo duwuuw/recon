@@ -53,6 +53,7 @@ class ClassifierTrainConfig:
     seed: int = 2023
     save_classes_in_checkpoint: bool = False
     drop_rate: float = 0.1
+    model_kwargs: dict[str, object] = field(default_factory=dict)
     num_classes: int = NUM_CLASSES
     num_workers: int = 0
     output_dir: Path | None = None
@@ -155,7 +156,11 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
 
         def build_model_fn(n: int):
             return create_timm_classifier(
-                cfg.timm_model, n, pretrained=cfg.pretrained, drop_rate=cfg.drop_rate
+                cfg.timm_model,
+                n,
+                pretrained=cfg.pretrained,
+                drop_rate=cfg.drop_rate,
+                **cfg.model_kwargs,
             )
 
     model = build_model_fn(cfg.num_classes).to(device)

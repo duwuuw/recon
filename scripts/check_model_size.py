@@ -16,14 +16,18 @@ def parse_args():
     p = argparse.ArgumentParser(description="Print model parameter count and FP32 size (MB)")
     p.add_argument("--model", default="convnextv2_nano")
     p.add_argument("--num-classes", type=int, default=4)
+    p.add_argument("--img-size", type=int, default=None)
     p.add_argument("--pretrained", action="store_true")
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+    kwargs = {}
+    if args.img_size is not None:
+        kwargs["img_size"] = args.img_size
     model = create_timm_classifier(
-        args.model, args.num_classes, pretrained=args.pretrained
+        args.model, args.num_classes, pretrained=args.pretrained, **kwargs
     )
     total = sum(p.numel() for p in model.parameters())
     mb = total * 4 / 1024 / 1024

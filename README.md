@@ -145,6 +145,7 @@ python scripts/train_resnet18.py
 | ---------------------------- | ---------------------------- |
 | `train_convnext11.py`        | convnextv2_nano              |
 | `train_efficientnet.py`      | tf_efficientnetv2_s          |
+| `train_dinov2_small.py`      | vit_small_patch14_dinov2     |
 | `train_vit11.py`             | vit_base_patch16_rope_224    |
 | `train_resnet18.py`          | ecaresnet50d                 |
 | `train_mambaout_kobe.py`     | mambaout_kobe                |

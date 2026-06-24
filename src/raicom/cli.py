@@ -70,6 +70,7 @@ def build_config(defaults: ClassifierTrainConfig, args: argparse.Namespace) -> C
         seed=args.seed if args.seed is not None else defaults.seed,
         save_classes_in_checkpoint=defaults.save_classes_in_checkpoint,
         drop_rate=defaults.drop_rate,
+        model_kwargs=dict(defaults.model_kwargs),
         num_classes=defaults.num_classes,
         num_workers=args.num_workers,
         output_dir=args.output_dir or defaults.output_dir or default_output_dir(),

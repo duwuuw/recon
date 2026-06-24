@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train MambaOut Small RW (from mambaout_small_rw.ipynb)."""
+"""Train MobileNetV4 Hybrid Large."""
 
 from __future__ import annotations
 
