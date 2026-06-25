@@ -3,12 +3,10 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 默认训练 15 个单模型脚本（顺序：MobileNet → FastViT → MambaOut → 其余）
+# 默认训练 13 个单模型脚本（顺序：MobileNet → FastViT → MambaOut → 其余）
 CORE_SINGLE_MODELS=(
   mobilenetv4
-  mobilenetv4_hyper
   fastvit_s24
-  fastvit_sa36
   mambaout_kobe
   mambaout_small_rw
   convnext11
@@ -118,9 +116,7 @@ LEGACY_SCRIPT_MODELS=(
   mambaout_kobe
   mambaout_small_rw
   mobilenetv4
-  mobilenetv4_hyper
   fastvit_s24
-  fastvit_sa36
   fasternet
   repvit
   repvit_m2
@@ -148,7 +144,7 @@ Examples:
   bash train_all_single_models.sh mobilenetv4 fastvit_s24 mambaout_kobe
   ALL_PRESETS=1 bash train_all_single_models.sh
 
-Default (no args): 15 core scripts in order
+Default (no args): 13 core scripts in order
   MobileNet → FastViT → MambaOut → others → GDN
 
 EOF

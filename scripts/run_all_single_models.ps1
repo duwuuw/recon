@@ -27,10 +27,8 @@ conda run -n $condaEnv python -c "import torch; assert torch.cuda.is_available()
 $scripts = @(
     # 1. MobileNet
     "scripts/train_mobilenetv4.py",
-    "scripts/train_mobilenetv4_hyper.py",
     # 2. FastViT
     "scripts/train_fastvit_s24.py",
-    "scripts/train_fastvit_sa36.py",
     # 3. MambaOut
     "scripts/train_mambaout_kobe.py",
     "scripts/train_mambaout_small_rw.py",

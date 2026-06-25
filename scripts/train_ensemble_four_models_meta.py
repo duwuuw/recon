@@ -85,7 +85,7 @@ ENSEMBLE_PRESETS: dict[str, list[str]] = {
         "mambaout_kobe.in1k",
         "convnextv2_nano",
         "resnet50",
-        "mobilenetv3_large_100",
+        "mobilenetv4_hybrid_medium",
     ],
 }
 

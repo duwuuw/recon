@@ -102,7 +102,7 @@ DRY_RUN=1 SCRIPT_NAME=train_fastvit_s24.py bash train_one.sh
 CPU=1 bash train_one.sh
 ```
 
-## 3. 批量训练 15 个核心单模型
+## 3. 批量训练 13 个核心单模型
 
 **默认顺序**：MobileNet → FastViT → MambaOut → 其余 → GDN
 

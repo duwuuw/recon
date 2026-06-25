@@ -130,28 +130,26 @@ python scripts/train_<模型名>.py --data-root data/raw/dataset
 
 ---
 
-## 3. 逐个训练：15 个单模型 + GDN
+## 3. 逐个训练：13 个单模型 + GDN
 
 **必须每个都跑一遍**（下面表格每一行一条命令）。  
-建议在仓库根目录**按顺序**执行，或直接用 [第 5 节](#5-一键训练全部单模型) 批量脚本。
+已去掉参数量较大的 `mobilenetv4_hybrid_large`、`fastvit_sa36`；需要大模型可用 `train_timm_preset.py` 单独跑。
 
 | # | 脚本 | 输出权重 | timm 骨干 |
 |---|------|----------|-----------|
 | 1 | `scripts/train_mobilenetv4.py` | `checkpoints/mobilenetv4_hybrid_medium.pth` | mobilenetv4_hybrid_medium |
-| 2 | `scripts/train_mobilenetv4_hyper.py` | `checkpoints/mobilenetv4_hybrid_large.pth` | mobilenetv4_hybrid_large |
-| 3 | `scripts/train_fastvit_s24.py` | `checkpoints/fastvit_s24.pth` | fastvit_sa24 |
-| 4 | `scripts/train_fastvit_sa36.py` | `checkpoints/fastvit_sa36.apple_dist_in1k.pth` | fastvit_sa36 |
-| 5 | `scripts/train_mambaout_kobe.py` | `checkpoints/mambaout_kobe.pth` | mambaout_kobe |
-| 6 | `scripts/train_mambaout_small_rw.py` | `checkpoints/mambaout_small_rw.pth` | mambaout_small_rw |
-| 7 | `scripts/train_convnext11.py` | `checkpoints/convnext.pth` | convnextv2_nano |
-| 8 | `scripts/train_dinov2_small.py` | `checkpoints/dinov2_small.pth` | vit_small_patch14_dinov2 |
-| 9 | `scripts/train_efficientnet.py` | `checkpoints/efficientnet.pth` | tf_efficientnetv2_s |
-| 10 | `scripts/train_fasternet.py` | `checkpoints/fasternet_t2.pth` | fasternet_t2 |
-| 11 | `scripts/train_repvit.py` | `checkpoints/repvit_m1_5.pth` | repvit_m1_5 |
-| 12 | `scripts/train_repvit_m2.py` | `checkpoints/repvit_m2_3.pth` | repvit_m2_3 |
-| 13 | `scripts/train_resnet18.py` | `checkpoints/resnet50.pth` | ecaresnet50d |
-| 14 | `scripts/train_vit11.py` | `checkpoints/vit.pth` | vit_base_patch16_rope_224 |
-| 15 | `scripts/train_gdn.py` | `checkpoints/gdn_best.pth` | 自定义 GDN（非 timm） |
+| 2 | `scripts/train_fastvit_s24.py` | `checkpoints/fastvit_s24.pth` | fastvit_sa24 |
+| 3 | `scripts/train_mambaout_kobe.py` | `checkpoints/mambaout_kobe.pth` | mambaout_kobe |
+| 4 | `scripts/train_mambaout_small_rw.py` | `checkpoints/mambaout_small_rw.pth` | mambaout_small_rw |
+| 5 | `scripts/train_convnext11.py` | `checkpoints/convnext.pth` | convnextv2_nano |
+| 6 | `scripts/train_dinov2_small.py` | `checkpoints/dinov2_small.pth` | vit_small_patch14_dinov2 |
+| 7 | `scripts/train_efficientnet.py` | `checkpoints/efficientnet.pth` | tf_efficientnetv2_s |
+| 8 | `scripts/train_fasternet.py` | `checkpoints/fasternet_t2.pth` | fasternet_t2 |
+| 9 | `scripts/train_repvit.py` | `checkpoints/repvit_m1_5.pth` | repvit_m1_5 |
+| 10 | `scripts/train_repvit_m2.py` | `checkpoints/repvit_m2_3.pth` | repvit_m2_3 |
+| 11 | `scripts/train_resnet18.py` | `checkpoints/resnet50.pth` | ecaresnet50d |
+| 12 | `scripts/train_vit11.py` | `checkpoints/vit.pth` | vit_base_patch16_rope_224 |
+| 13 | `scripts/train_gdn.py` | `checkpoints/gdn_best.pth` | 自定义 GDN（非 timm） |
 
 ### 3.1 复制粘贴：逐个训练（GPU）
 
@@ -161,9 +159,7 @@ $env:HF_ENDPOINT = "https://hf-mirror.com"
 $data = "data/raw/dataset"
 
 python scripts/train_mobilenetv4.py       --data-root $data
-python scripts/train_mobilenetv4_hyper.py --data-root $data
 python scripts/train_fastvit_s24.py       --data-root $data
-python scripts/train_fastvit_sa36.py      --data-root $data
 python scripts/train_mambaout_kobe.py     --data-root $data
 python scripts/train_mambaout_small_rw.py --data-root $data
 python scripts/train_convnext11.py        --data-root $data
@@ -177,7 +173,7 @@ python scripts/train_vit11.py            --data-root $data
 python scripts/train_gdn.py              --data-root $data
 ```
 
-> **GDN 说明**：依赖 `flash-linear-attention`，Windows 上可能装不上；失败可先在 Linux/WSL 训练，或暂时跳过，其余 14 个 timm 模型不受影响。
+> **GDN 说明**：依赖 `flash-linear-attention`，Windows 上可能装不上；失败可先在 Linux/WSL 训练，或暂时跳过，其余 12 个 timm 模型不受影响。
 
 ---
 
@@ -227,7 +223,7 @@ $env:RAICOM_CONDA_ENV = "xianyu"
 .\scripts\run_all_single_models.ps1
 ```
 
-脚本会先检测 CUDA，再按顺序训练 15 个模型，最后 `summarize_f1.py`。
+脚本会先检测 CUDA，再按顺序训练 13 个模型，最后 `summarize_f1.py`。
 
 ---
 
@@ -288,7 +284,7 @@ python scripts/eval_checkpoint.py `
 
 ## 7. 汇总全部模型的 Test F1
 
-15 个单模型都训完后，一张表对比谁最好：
+13 个单模型都训完后，一张表对比谁最好：
 
 ```powershell
 conda activate fm
@@ -317,7 +313,7 @@ gdn                           —          —  (未训练: gdn_best.pth)
 
 - [ ] **GPU 环境**：`conda activate fm`（或 xianyu），CUDA 检查通过
 - [ ] **预下载权重**：`$env:HF_ENDPOINT="https://hf-mirror.com"` 后训练第一个模型
-- [ ] **训练 15 个单模型**：第 3 节逐条或 `run_all_single_models.ps1`
+- [ ] **训练 13 个单模型**：第 3 节逐条或 `run_all_single_models.ps1`
 - [ ] **汇总 F1**：`python scripts/summarize_f1.py`
 - [ ] **（可选）训练集成**：`train_ensemble_four_models_meta.py`
 - [ ] **（可选）单独复测**：`eval_checkpoint.py`
@@ -392,7 +388,7 @@ python scripts/train_ensemble_four_models_meta.py --data-root data/raw/dataset
 | `scripts/train_*.py` | 各模型训练入口 |
 | `scripts/eval_checkpoint.py` | 单独评估权重 + F1 |
 | `scripts/summarize_f1.py` | 汇总全部模型 Test F1 |
-| `scripts/run_all_single_models.ps1` | GPU 批量训练 15 个单模型 |
+| `scripts/run_all_single_models.ps1` | GPU 批量训练 13 个单模型 |
 | `scripts/use_gpu_env.ps1` | 激活 fm/xianyu 并检查 GPU |
 | `checkpoints/` | 权重与曲线（训练后生成，不提交 git） |
 | `src/raicom/classifier.py` | 训练主流程与自动存盘 |

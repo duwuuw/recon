@@ -213,7 +213,7 @@ python -c "import timm; timm.create_model('convnextv2_nano', pretrained=True, nu
 
 ## 4. 开始训练（最常用流程）
 
-> **完整版**：15 个单模型逐条命令、批量训练、单独测试、F1 汇总见 [docs/TRAINING_AND_EVAL.md](../docs/TRAINING_AND_EVAL.md)。
+> **完整版**：13 个单模型逐条命令、批量训练、单独测试、F1 汇总见 [docs/TRAINING_AND_EVAL.md](../docs/TRAINING_AND_EVAL.md)。
 
 以下命令均在**根目录**执行。
 
