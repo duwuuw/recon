@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="fastvit_sa24.apple_dist_in1k",
             checkpoint_name="fastvit_s24.pth",
             curves_name="fastvit_s24.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2.5e-4,
         )
     )

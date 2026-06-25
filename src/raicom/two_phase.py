@@ -16,8 +16,8 @@ DEFAULT_EARLY_STOPPING_MIN_DELTA = 1e-4
 class TwoPhaseSchedule:
     """Phase 1: classifier head only. Phase 2: full model fine-tune."""
 
-    head_epochs: int = 84
-    finetune_epochs: int = 16
+    head_epochs: int = 30
+    finetune_epochs: int = 30
     head_lr: float = 5e-4
     head_eta_min_ratio: float = 0.001
     finetune_lr: float = 2e-7

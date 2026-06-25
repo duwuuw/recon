@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="fasternet_t2",
             checkpoint_name="fasternet_t2.pth",
             curves_name="fasternet_t2.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2.5e-4,
         )
     )

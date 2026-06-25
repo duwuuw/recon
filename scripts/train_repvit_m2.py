@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="repvit_m2_3",
             checkpoint_name="repvit_m2_3.pth",
             curves_name="repvit_m2_3.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2e-4,
         )
     )

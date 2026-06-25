@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="vit_base_patch16_rope_224",
             checkpoint_name="vit.pth",
             curves_name="vit.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2.5e-4,
         )
     )

@@ -53,7 +53,7 @@ def parse_args():
         type=float,
         default=DEFAULT_EARLY_STOPPING_MIN_DELTA,
     )
-    p.add_argument("--batch-size", type=int, default=16)
+    p.add_argument("--batch-size", type=int, default=56)
     p.add_argument("--show-plots", action="store_true")
     return p.parse_args()
 

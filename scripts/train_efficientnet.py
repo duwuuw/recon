@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="tf_efficientnetv2_s",
             checkpoint_name="efficientnet.pth",
             curves_name="efficientnet.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2.5e-4,
         )
     )

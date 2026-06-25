@@ -29,13 +29,13 @@ def add_classifier_args(parser: argparse.ArgumentParser) -> None:
         "--head-epochs",
         type=int,
         default=None,
-        help="阶段1 epoch 数（仅训练分类头，默认 84）",
+        help="阶段1 epoch 数（仅训练分类头，默认 30）",
     )
     parser.add_argument(
         "--finetune-epochs",
         type=int,
         default=None,
-        help="阶段2 epoch 数（全网络微调，默认 16）",
+        help="阶段2 epoch 数（全网络微调，默认 30）",
     )
     parser.add_argument("--head-lr", type=float, default=None, help="阶段1 学习率（默认 5e-4）")
     parser.add_argument(

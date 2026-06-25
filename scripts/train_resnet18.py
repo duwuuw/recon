@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="ecaresnet50d",
             checkpoint_name="resnet50.pth",
             curves_name="resnet50.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2e-4,
         )
     )

@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="mambaout_small_rw",
             checkpoint_name="mambaout_small_rw.pth",
             curves_name="mambaout_small_rw.png",
-            batch_size=24,
+            batch_size=56,
             weight_decay=2.35e-4,
             optimizer="adam",
         )

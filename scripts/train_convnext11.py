@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="convnextv2_nano",
             checkpoint_name="convnext.pth",
             curves_name="convnext.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2.5e-4,
             save_classes_in_checkpoint=True,
         )

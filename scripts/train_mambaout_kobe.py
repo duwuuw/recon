@@ -18,7 +18,7 @@ if __name__ == "__main__":
             timm_model="mambaout_kobe",
             checkpoint_name="mambaout_kobe.pth",
             curves_name="training_curves_mamba.png",
-            batch_size=32,
+            batch_size=56,
             weight_decay=2e-4,
         )
     )
