@@ -18,8 +18,8 @@ def parse_args():
     p.add_argument(
         "--source",
         type=Path,
-        default=Path("weather_dataset/dataset"),
-        help="Full ImageFolder root",
+        default=Path("data/raw/dataset"),
+        help="Full ImageFolder root (default: repo data/raw/dataset)",
     )
     p.add_argument(
         "--dest",

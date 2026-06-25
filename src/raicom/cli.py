@@ -63,6 +63,7 @@ def add_classifier_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--show-plots", action="store_true")
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--cpu", action="store_true", help="强制使用 CPU")
 
 
 def build_config(defaults: ClassifierTrainConfig, args: argparse.Namespace) -> ClassifierTrainConfig:
@@ -100,6 +101,7 @@ def build_config(defaults: ClassifierTrainConfig, args: argparse.Namespace) -> C
         data_root=args.data_root or defaults.data_root,
         show_plots=args.show_plots,
         print_test_report=defaults.print_test_report,
+        force_cpu=getattr(args, "cpu", False) or defaults.force_cpu,
         early_stopping_patience=args.early_stop
         if args.early_stop is not None
         else defaults.early_stopping_patience,

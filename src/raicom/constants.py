@@ -2,5 +2,5 @@
 
 NUM_CLASSES = 4
 
-# Subset shipped in data/raw/dataset/ (50 images per class)
-SAMPLE_CLASS_NAMES = ("rain", "snow", "fogsmog", "hail")
+# Default classes in data/raw/dataset/ (天气识别竞赛 train 集)
+SAMPLE_CLASS_NAMES = ("cloudy", "rainy", "snowy", "sunny")

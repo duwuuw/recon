@@ -13,6 +13,7 @@ import torch.nn as nn
 from raicom.constants import NUM_CLASSES
 from raicom.checkpoints import BestCheckpointTracker, load_checkpoint
 from raicom.data import build_imagefolder_loaders
+from raicom.device import pick_device
 from raicom.paths import default_data_root, repo_root
 from raicom.timm_factory import create_timm_classifier
 from raicom.training import (
@@ -64,6 +65,7 @@ class ClassifierTrainConfig:
     data_root: str | None = None
     show_plots: bool = False
     print_test_report: bool = True
+    force_cpu: bool = False
     early_stopping_patience: int = DEFAULT_EARLY_STOPPING_PATIENCE
     early_stopping_min_delta: float = DEFAULT_EARLY_STOPPING_MIN_DELTA
     two_phase: TwoPhaseSchedule = field(default_factory=TwoPhaseSchedule)
@@ -136,10 +138,13 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
     ckpt_path = output_dir / cfg.checkpoint_name
     curves_path = output_dir / cfg.curves_name
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = pick_device(force_cpu=cfg.force_cpu)
     print(f"使用设备: {device}")
     print(describe_phase(schedule, 1))
-    print(describe_phase(schedule, 2))
+    if schedule.finetune_epochs > 0:
+        print(describe_phase(schedule, 2))
+    else:
+        print(f"[head-only] 仅训练分类头 {schedule.head_epochs} epoch，跳过阶段2")
 
     data_root = cfg.data_root or default_data_root(require_existing=True)
     train_loader, val_loader, test_loader, dataset_num_classes, class_names = build_imagefolder_loaders(
@@ -220,61 +225,62 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
         if macro_f1 is not None:
             val_f1s.append(macro_f1)
 
-    print("\n" + "=" * 60)
-    print("切换至阶段2：解冻骨干网络")
-    print("=" * 60 + "\n")
-    unfreeze_all(model)
-    print(f"阶段2 可训练参数量: {count_trainable_parameters(model):,}")
-    early_stopper = EarlyStopper(
-        patience=cfg.early_stopping_patience,
-        min_delta=cfg.early_stopping_min_delta,
-        best_metric=tracker.best_metric,
-    )
-    print(early_stopper.describe())
-
-    optimizer = build_optimizer(
-        model,
-        lr=schedule.finetune_lr,
-        weight_decay=cfg.weight_decay,
-        optimizer_name=cfg.optimizer,
-    )
-    scheduler = build_cosine_scheduler(
-        optimizer,
-        t_max=schedule.finetune_epochs,
-        eta_min=schedule.finetune_eta_min,
-    )
-
-    for offset, epoch in enumerate(
-        range(schedule.head_epochs + 1, schedule.total_epochs + 1), start=1
-    ):
-        tr_loss, tr_acc, va_loss, va_acc, macro_f1 = _run_epoch(
-            model=model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            criterion=criterion,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            device=device,
-            epoch=epoch,
-            total_epochs=schedule.total_epochs,
-            mixup_alpha=cfg.mixup_alpha,
-            tracker=tracker,
-            class_names=class_names,
-            ckpt_path=ckpt_path,
-            phase_tag=f"[阶段2 {offset}/{schedule.finetune_epochs}]",
+    if schedule.finetune_epochs > 0:
+        print("\n" + "=" * 60)
+        print("切换至阶段2：解冻骨干网络")
+        print("=" * 60 + "\n")
+        unfreeze_all(model)
+        print(f"阶段2 可训练参数量: {count_trainable_parameters(model):,}")
+        early_stopper = EarlyStopper(
+            patience=cfg.early_stopping_patience,
+            min_delta=cfg.early_stopping_min_delta,
+            best_metric=tracker.best_metric,
         )
-        train_losses.append(tr_loss)
-        train_accs.append(tr_acc)
-        val_losses.append(va_loss)
-        val_accs.append(va_acc)
-        if macro_f1 is not None:
-            val_f1s.append(macro_f1)
-        if early_stopper.step(va_acc, epoch):
-            print(
-                f"  -> 早停：阶段2 val_acc 连续 {early_stopper.patience} 轮未超过历史最佳 "
-                f"(best={early_stopper.best_metric:.4f})"
+        print(early_stopper.describe())
+
+        optimizer = build_optimizer(
+            model,
+            lr=schedule.finetune_lr,
+            weight_decay=cfg.weight_decay,
+            optimizer_name=cfg.optimizer,
+        )
+        scheduler = build_cosine_scheduler(
+            optimizer,
+            t_max=schedule.finetune_epochs,
+            eta_min=schedule.finetune_eta_min,
+        )
+
+        for offset, epoch in enumerate(
+            range(schedule.head_epochs + 1, schedule.total_epochs + 1), start=1
+        ):
+            tr_loss, tr_acc, va_loss, va_acc, macro_f1 = _run_epoch(
+                model=model,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                criterion=criterion,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                device=device,
+                epoch=epoch,
+                total_epochs=schedule.total_epochs,
+                mixup_alpha=cfg.mixup_alpha,
+                tracker=tracker,
+                class_names=class_names,
+                ckpt_path=ckpt_path,
+                phase_tag=f"[阶段2 {offset}/{schedule.finetune_epochs}]",
             )
-            break
+            train_losses.append(tr_loss)
+            train_accs.append(tr_acc)
+            val_losses.append(va_loss)
+            val_accs.append(va_acc)
+            if macro_f1 is not None:
+                val_f1s.append(macro_f1)
+            if early_stopper.step(va_acc, epoch):
+                print(
+                    f"  -> 早停：阶段2 val_acc 连续 {early_stopper.patience} 轮未超过历史最佳 "
+                    f"(best={early_stopper.best_metric:.4f})"
+                )
+                break
 
     meta = load_checkpoint(ckpt_path, model, device)
     if meta is None:

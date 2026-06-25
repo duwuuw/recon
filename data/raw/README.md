@@ -1,20 +1,18 @@
-# 数据集（仓库内样本）
+# data/raw/dataset
 
-本目录为 **4 类 × 50 张** 的子集，供克隆仓库后直接训练：
+完整 **天气识别** 训练集（4 类，4999 张），ImageFolder 格式。
 
-| 类别 | 说明 |
+| 类别 | 张数 |
 |------|------|
-| rain | 雨 |
-| snow | 雪 |
-| fogsmog | 雾/霾 |
-| hail | 冰雹 |
+| cloudy | 2184 |
+| rainy | 446 |
+| snowy | 403 |
+| sunny | 1966 |
 
-完整 11 类数据请放在本地 `weather_dataset/dataset/`，或设置 `RAICOM_DATA_ROOT`。
+详细导入与训练说明见上级目录：[../README.md](../README.md)
 
-重新生成样本：
+重新从 zip 导入：
 
 ```bash
-python scripts/build_sample_dataset.py
+python scripts/import_weather_zip.py --zip "路径/天气识别.zip"
 ```
-
-默认从 `weather_dataset/dataset` 抽样，输出到 `data/raw/dataset/`。

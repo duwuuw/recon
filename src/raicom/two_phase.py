@@ -38,6 +38,9 @@ class TwoPhaseSchedule:
 
 DEFAULT_TWO_PHASE = TwoPhaseSchedule()
 
+# head_only_local: classifier head only, no backbone fine-tune
+HEAD_ONLY_LOCAL_SCHEDULE = TwoPhaseSchedule(head_epochs=10, finetune_epochs=0)
+
 
 @dataclass
 class EarlyStopper:

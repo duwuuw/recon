@@ -67,21 +67,21 @@ pip install flash-linear-attention
 
 ## 数据准备
 
-仓库已包含 **4 类 × 50 张** 样本（约 13MB），路径 `data/raw/dataset/`：
-目前官方没有公布数据集所以我就选了50张先上传来测试，便于各位先快速跑通代码
-| 类别 | 张数 |
-|------|------|
-| rain | 50 |
-| snow | 50 |
-| fogsmog | 50 |
-| hail | 50 |
+仓库已包含 **天气识别竞赛 train 集**（4 类，4999 张），路径 `data/raw/dataset/`：
+
+| 类别 | 文件夹 | 张数 |
+|------|--------|------|
+| 多云 | cloudy | 2184 |
+| 雨天 | rainy | 446 |
+| 雪天 | snowy | 403 |
+| 晴天 | sunny | 1966 |
 
 所有训练脚本分类头固定为 **4 类**（`src/raicom/constants.py` 中 `NUM_CLASSES = 4`）。
 
-
+**从 zip 重新导入**（会覆盖 `data/raw/dataset/`，详见 [data/README.md](data/README.md)）：
 
 ```bash
-python scripts/build_sample_dataset.py
+python scripts/import_weather_zip.py --zip data/raw/天气识别.zip
 ```
 
 数据集需为 **ImageFolder** 格式：根目录下每个子文件夹对应一个类别。
