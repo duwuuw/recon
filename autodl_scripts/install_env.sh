@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 ENV_NAME="${ENV_NAME:-raicom}"
 PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
-TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
+TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 SKIP_APT="${SKIP_APT:-0}"
 SKIP_TORCH="${SKIP_TORCH:-0}"
 INSTALL_GDN="${INSTALL_GDN:-0}"
@@ -58,8 +58,14 @@ if command -v conda >/dev/null 2>&1; then
 elif [[ -f "$PROJECT_DIR/.venv/bin/activate" ]]; then
   source "$PROJECT_DIR/.venv/bin/activate"
 fi
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
+autodl_check_gpu || true
 EOF
 chmod +x "$SCRIPT_DIR/autodl_env.sh"
 
 echo "[install_env] done"
 echo "[install_env] next: source $SCRIPT_DIR/autodl_env.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
+autodl_check_gpu

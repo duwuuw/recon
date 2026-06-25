@@ -2,7 +2,10 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="${PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
+
+PROJECT_DIR="$(autodl_project_dir)"
 
 if [[ -f "$SCRIPT_DIR/autodl_env.sh" ]]; then
   # shellcheck disable=SC1091
@@ -15,7 +18,7 @@ if [[ -n "$MODEL_PRESET" && -z "$SCRIPT_NAME" ]]; then
   SCRIPT_NAME="train_timm_preset.py"
 fi
 SCRIPT_NAME="${SCRIPT_NAME:-train_convnext11.py}"
-DATA_ROOT="${DATA_ROOT:-${RAICOM_DATA_ROOT:-/root/autodl-tmp/data}}"
+DATA_ROOT="$(autodl_resolve_data_root "$PROJECT_DIR")"
 RUN_ROOT="${RUN_ROOT:-/root/autodl-tmp/raicom_runs}"
 RUN_STEM="${MODEL_PRESET:-${SCRIPT_NAME%.py}}"
 RUN_NAME="${RUN_NAME:-${RUN_STEM}_$(date +%Y%m%d_%H%M%S)}"
@@ -32,6 +35,7 @@ NUM_WORKERS="${NUM_WORKERS:-4}"
 SEED="${SEED:-}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 DRY_RUN="${DRY_RUN:-0}"
+CPU="${CPU:-0}"
 
 SCRIPT_PATH="$PROJECT_DIR/scripts/$SCRIPT_NAME"
 if [[ ! -f "$SCRIPT_PATH" ]]; then
@@ -41,6 +45,8 @@ fi
 
 mkdir -p "$OUTPUT_DIR/logs"
 cd "$PROJECT_DIR"
+
+autodl_check_gpu
 
 cmd=(python "$SCRIPT_PATH")
 if [[ -n "$MODEL_PRESET" ]]; then
@@ -67,6 +73,10 @@ append_arg --image-size "$IMAGE_SIZE"
 if [[ "$SCRIPT_NAME" != "train_gdn.py" ]]; then
   append_arg --num-workers "$NUM_WORKERS"
   append_arg --seed "$SEED"
+fi
+
+if [[ "$CPU" == "1" ]]; then
+  cmd+=(--cpu)
 fi
 
 if [[ -n "$EXTRA_ARGS" ]]; then

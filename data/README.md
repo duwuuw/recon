@@ -196,38 +196,37 @@ done: 4 classes, 4999 images -> data\raw\dataset
 按顺序打勾：
 
 - [ ] 已进入仓库**根目录**（`dir scripts` 有输出）
-- [ ] Python 3.10+（`python --version`）
-- [ ] 已 `pip install -e .`
+- [ ] **已激活 GPU 环境**：`conda activate fm` 或 `conda activate xianyu`
+- [ ] CUDA 可用：`python -c "import torch; print(torch.cuda.is_available())"` → **True**
+- [ ] 已 `pip install -e .`（在该 conda 环境内）
 - [ ] `data/raw/dataset` 下 4 个类别文件夹齐全（见 1.4 节）
-- [ ] （可选）有 NVIDIA 显卡且 PyTorch 能识别 CUDA；否则脚本会自动用 CPU（较慢）
 
-**可选：预下载 timm 预训练权重**（联网时执行，减少训练时等待）：
+**预下载 timm 预训练权重**（联网时，在 fm/xianyu 环境中）：
 
 ```powershell
-# 使用 HuggingFace 镜像（国内推荐）
+conda activate fm
 $env:HF_ENDPOINT = "https://hf-mirror.com"
-python head_only_local/prefetch_weights.py
-```
-
-若团队有 HF Token，在同一终端先设置（**不要把 token 提交到 git**）：
-
-```powershell
-$env:HF_TOKEN = "你的token"
+python -c "import timm; timm.create_model('convnextv2_nano', pretrained=True, num_classes=4)"
 ```
 
 ---
 
 ## 4. 开始训练（最常用流程）
 
+> **完整版**：15 个单模型逐条命令、批量训练、单独测试、F1 汇总见 [docs/TRAINING_AND_EVAL.md](../docs/TRAINING_AND_EVAL.md)。
+
 以下命令均在**根目录**执行。
 
-### 4.1 单模型训练（推荐新手先试）
+### 4.1 单模型训练（GPU）
 
 ```powershell
+conda activate fm
+$env:HF_ENDPOINT = "https://hf-mirror.com"
+
 python scripts/train_convnext11.py
 ```
 
-**不需要**加 `--data-root`，只要 `data/raw/dataset` 存在即可。
+默认 **GPU 训练**，日志应出现 `Device: cuda:0 (...)`。
 
 **训练成功的标志：**
 
@@ -290,8 +289,8 @@ python scripts/train_convnext11.py --batch-size 16
 # 指定权重输出目录
 python scripts/train_convnext11.py --output-dir checkpoints/my_run
 
-# 强制 CPU（显卡不可用或报 CUDA 错时）
-python scripts/train_convnext11.py --cpu
+# 强制 CPU（仅调试，正常勿用）
+# python scripts/train_convnext11.py --cpu
 ```
 
 ---
@@ -398,17 +397,17 @@ python scripts/train_convnext11.py --data-root data/raw/dataset_sample
 
 ---
 
-### 8.3 `CUDA error` / 显卡不可用
+### 8.3 终端显示 Device: cpu
 
-**原因：** 驱动、PyTorch 版本与显卡不匹配（如新显卡尚未被当前 PyTorch 支持）。
+**原因：** 用了 base Python，未激活 fm/xianyu。
 
 **处理：**
 
 ```powershell
-python scripts/train_convnext11.py --cpu
+conda activate fm
+python -c "import torch; print(torch.cuda.is_available())"
+python scripts/train_convnext11.py
 ```
-
-或换用已支持 CUDA 的机器 / 更新 PyTorch。
 
 ---
 
@@ -428,13 +427,7 @@ python scripts/train_convnext11.py
 
 ### 8.5 训练很慢
 
-**原因：** 4999 张图 + 默认两阶段训练（84 轮 head + 16 轮全网络）本身耗时。
-
-**建议：**
-
-- 先用 `head_only_local/train_convnext11.py`（10 轮 head-only）确认流程  
-- 或用 [第七节](#7-生成小数据集调试专用可选) 小数据集  
-- 有 GPU 时不要加 `--cpu`  
+确认日志里是 **`Device: cuda:0`**，不是 cpu。全量 100 epoch 在 GPU 上仍需要较长时间。
 
 ---
 
@@ -472,11 +465,15 @@ python scripts/import_weather_zip.py --zip data/raw/天气识别.zip
 # 检查划分
 python -c "import sys; sys.path.insert(0,'src'); from raicom.data import build_imagefolder_loaders; tl,vl,te,nc,n=build_imagefolder_loaders('data/raw/dataset',32); print(nc,n,len(tl.dataset),len(vl.dataset),len(te.dataset))"
 
+```powershell
+conda activate fm
+$env:HF_ENDPOINT = "https://hf-mirror.com"
+
 # 训练
 python scripts/train_convnext11.py
 
-# 快速 head-only
-python head_only_local/train_convnext11.py
+# 批量训练全部单模型（GPU）
+.\scripts\run_all_single_models.ps1
 ```
 
 ---
@@ -495,4 +492,5 @@ python head_only_local/train_convnext11.py
 | `scripts/train_*.py` | 各模型训练入口 |
 | `checkpoints/` | 训练输出（运行后生成） |
 
-更完整的模型与训练说明见仓库根目录 `README.md`。
+更完整的模型与训练说明见仓库根目录 [README.md](../README.md)。  
+**逐个模型训练、测试、汇总 F1** 见 [docs/TRAINING_AND_EVAL.md](../docs/TRAINING_AND_EVAL.md)。

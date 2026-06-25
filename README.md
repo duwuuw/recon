@@ -37,31 +37,25 @@ raicom/
 
 ## 环境配置
 
-**要求：Python 3.10+和conda**
+**要求：Python 3.10+，NVIDIA GPU，conda 环境 `fm` 或 `xianyu`（已配 torch 2.11+cu128）**
 
-1. 安装 PyTorch（按 [pytorch.org](https://pytorch.org/) 选择 CUDA 版本）
-2. 在仓库根目录安装依赖：
+```powershell
+conda activate fm
+# 或 conda activate xianyu
 
-```bash
-conda create --prefix D:\conda_envs\rk python=3.10
-conda activate rk
-pip install -e ".[train]"
-```
-
-或分步：
-
-```bash
+cd 路径\raicom
 pip install -r requirements.txt
 pip install -e .
+
+# 确认 GPU
+python -c "import torch; print(torch.cuda.get_device_name(0))"
 ```
 
-1. GDN 模型额外依赖（可选）：(我也不知道这个是否适合做分类任务)
+一键检查 GPU 环境：`. .\scripts\use_gpu_env.ps1`
 
-此外，flash-linear-attention这个包在windows非常难用，得在wsl或ubuntu下使用，不建议安装
+训练与测试完整说明：[docs/TRAINING_AND_EVAL.md](docs/TRAINING_AND_EVAL.md)
 
-```bash
-pip install flash-linear-attention
-```
+GDN 可选依赖 `flash-linear-attention` 在 Windows 上较难安装，建议 Linux/WSL。
 
 ---
 
@@ -83,6 +77,8 @@ pip install flash-linear-attention
 ```bash
 python scripts/import_weather_zip.py --zip data/raw/天气识别.zip
 ```
+
+**训练全部模型、测试、汇总 F1**：见 [docs/TRAINING_AND_EVAL.md](docs/TRAINING_AND_EVAL.md)。
 
 数据集需为 **ImageFolder** 格式：根目录下每个子文件夹对应一个类别。
 

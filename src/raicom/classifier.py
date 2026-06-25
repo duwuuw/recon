@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from raicom.constants import NUM_CLASSES
-from raicom.checkpoints import BestCheckpointTracker, load_checkpoint
+from raicom.checkpoints import BestCheckpointTracker, load_checkpoint, save_checkpoint
 from raicom.data import build_imagefolder_loaders
 from raicom.device import pick_device
 from raicom.paths import default_data_root, repo_root
@@ -79,6 +79,10 @@ def default_output_dir() -> Path:
     return repo_root() / "checkpoints"
 
 
+def _sidecar_ckpt(path: Path, tag: str) -> Path:
+    return path.with_name(f"{path.stem}_{tag}{path.suffix}")
+
+
 def _run_epoch(
     *,
     model,
@@ -95,6 +99,7 @@ def _run_epoch(
     class_names,
     ckpt_path: Path,
     phase_tag: str,
+    f1_tracker: BestCheckpointTracker | None = None,
 ) -> tuple[float, float, float, float, float | None]:
     train_loss, train_acc = train_one_epoch(
         model,
@@ -125,6 +130,12 @@ def _run_epoch(
     )
     if tracker.maybe_save(val_acc, model, classes=class_names, epoch=epoch):
         print(f"  -> 保存最佳权重 {ckpt_path} (val_acc={val_acc:.4f})\n")
+    if (
+        f1_tracker is not None
+        and macro_f1 is not None
+        and f1_tracker.maybe_save(macro_f1, model, classes=class_names, epoch=epoch)
+    ):
+        print(f"  -> 保存最佳 F1 权重 {f1_tracker.path} (val macro-F1={macro_f1:.4f})\n")
     return train_loss, train_acc, val_loss, val_acc, macro_f1
 
 
@@ -136,10 +147,16 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
     output_dir = cfg.output_dir or default_output_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
     ckpt_path = output_dir / cfg.checkpoint_name
+    f1_ckpt_path = _sidecar_ckpt(ckpt_path, "best_f1")
+    last_ckpt_path = _sidecar_ckpt(ckpt_path, "last")
     curves_path = output_dir / cfg.curves_name
 
     device = pick_device(force_cpu=cfg.force_cpu)
     print(f"使用设备: {device}")
+    print(f"权重保存目录: {output_dir.resolve()}")
+    print(f"  最佳 val_acc  -> {ckpt_path.name}")
+    print(f"  最佳 val F1   -> {f1_ckpt_path.name}")
+    print(f"  最后一轮      -> {last_ckpt_path.name}")
     print(describe_phase(schedule, 1))
     if schedule.finetune_epochs > 0:
         print(describe_phase(schedule, 2))
@@ -197,6 +214,10 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
         ckpt_path,
         save_classes=cfg.save_classes_in_checkpoint,
     )
+    f1_tracker = BestCheckpointTracker(
+        f1_ckpt_path,
+        save_classes=cfg.save_classes_in_checkpoint,
+    )
     train_losses, val_losses = [], []
     train_accs, val_accs = [], []
     val_f1s: list[float] = []
@@ -217,6 +238,7 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
             class_names=class_names,
             ckpt_path=ckpt_path,
             phase_tag="[阶段1]",
+            f1_tracker=f1_tracker,
         )
         train_losses.append(tr_loss)
         train_accs.append(tr_acc)
@@ -268,6 +290,7 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
                 class_names=class_names,
                 ckpt_path=ckpt_path,
                 phase_tag=f"[阶段2 {offset}/{schedule.finetune_epochs}]",
+                f1_tracker=f1_tracker,
             )
             train_losses.append(tr_loss)
             train_accs.append(tr_acc)
@@ -281,6 +304,14 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
                     f"(best={early_stopper.best_metric:.4f})"
                 )
                 break
+
+    save_checkpoint(
+        last_ckpt_path,
+        model,
+        classes=class_names if cfg.save_classes_in_checkpoint else None,
+        extra={"epoch": "last"},
+    )
+    print(f"\n已保存最后一轮权重 {last_ckpt_path}")
 
     meta = load_checkpoint(ckpt_path, model, device)
     if meta is None:
@@ -314,8 +345,11 @@ def train_classifier(cfg: ClassifierTrainConfig, *, build_model_fn: Callable | N
 
     return {
         "best_val_acc": tracker.best_metric,
+        "best_val_f1": f1_tracker.best_metric,
         "test_acc": test_acc,
         "test_f1": test_f1,
         "checkpoint": str(ckpt_path),
+        "checkpoint_best_f1": str(f1_ckpt_path),
+        "checkpoint_last": str(last_ckpt_path),
         "curves": str(curves_path),
     }

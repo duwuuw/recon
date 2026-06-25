@@ -3,6 +3,25 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# 默认训练 15 个单模型脚本（顺序：MobileNet → FastViT → MambaOut → 其余）
+CORE_SINGLE_MODELS=(
+  mobilenetv4
+  mobilenetv4_hyper
+  fastvit_s24
+  fastvit_sa36
+  mambaout_kobe
+  mambaout_small_rw
+  convnext11
+  dinov2_small
+  efficientnet
+  fasternet
+  repvit
+  repvit_m2
+  resnet18
+  vit11
+  gdn
+)
+
 TIMM_PRESETS=(
   convnextv2_atto
   convnextv2_femto
@@ -106,6 +125,7 @@ LEGACY_SCRIPT_MODELS=(
   repvit
   repvit_m2
   dinov2_small
+  gdn
 )
 
 contains() {
@@ -125,16 +145,16 @@ Usage:
 
 Examples:
   bash train_all_single_models.sh
-  bash train_all_single_models.sh convnextv2_tiny mobilenetv4_conv_medium fastvit_sa24
-  bash train_all_single_models.sh convnext11 train_fastvit_sa36.py
+  bash train_all_single_models.sh mobilenetv4 fastvit_s24 mambaout_kobe
+  ALL_PRESETS=1 bash train_all_single_models.sh
 
-Default with no arguments runs the curated <=30M timm presets.
+Default (no args): 15 core scripts in order
+  MobileNet → FastViT → MambaOut → others → GDN
 
 EOF
-  printf 'Curated presets:\n'
-  printf '  %s\n' "${TIMM_PRESETS[@]}"
-  printf '\nLegacy script aliases still accepted:\n'
-  printf '  %s\n' "${LEGACY_SCRIPT_MODELS[@]}"
+  printf 'Core models (default order):\n'
+  printf '  %s\n' "${CORE_SINGLE_MODELS[@]}"
+  printf '\nSet ALL_PRESETS=1 to run every <=30M timm preset instead.\n'
 }
 
 to_target() {
@@ -143,6 +163,10 @@ to_target() {
   name="${name#train_}"
   name="${name%.py}"
 
+  if [[ "$name" == "gdn" ]]; then
+    echo "script:train_gdn.py"
+    return 0
+  fi
   if contains "$name" "${TIMM_PRESETS[@]}"; then
     echo "preset:$name"
     return 0
@@ -167,10 +191,18 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || "${1:-}" == "help" ]]; then
 fi
 
 if [[ "$#" -eq 0 ]]; then
-  SELECTED_MODELS=("${TIMM_PRESETS[@]}")
+  if [[ "${ALL_PRESETS:-0}" == "1" ]]; then
+    SELECTED_MODELS=("${TIMM_PRESETS[@]}")
+  else
+    SELECTED_MODELS=("${CORE_SINGLE_MODELS[@]}")
+  fi
 else
   SELECTED_MODELS=("$@")
 fi
+
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
+autodl_check_gpu
 
 for model in "${SELECTED_MODELS[@]}"; do
   target="$(to_target "$model")"
@@ -185,3 +217,10 @@ for model in "${SELECTED_MODELS[@]}"; do
     SCRIPT_NAME="$value" RUN_NAME="${value%.py}_${timestamp}" "$SCRIPT_DIR/train_one.sh"
   fi
 done
+
+PROJECT_DIR="$(autodl_project_dir)"
+DATA_ROOT="$(autodl_resolve_data_root "$PROJECT_DIR")"
+echo "[train_all] summarize test F1"
+python "$PROJECT_DIR/scripts/summarize_f1.py" --data-root "$DATA_ROOT" \
+  --checkpoint-dir "${CHECKPOINT_DIR:-$PROJECT_DIR/checkpoints}" \
+  2>&1 | tee -a "${RUN_ROOT:-/root/autodl-tmp/raicom_runs}/f1_summary.log" || true

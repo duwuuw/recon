@@ -3,13 +3,15 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
 
 if [[ -f "$SCRIPT_DIR/autodl_env.sh" ]]; then
   # shellcheck disable=SC1091
   source "$SCRIPT_DIR/autodl_env.sh"
 fi
 
-DATA_ROOT="${DATA_ROOT:-${RAICOM_DATA_ROOT:-/root/autodl-tmp/data}}"
+DATA_ROOT="$(autodl_resolve_data_root "$PROJECT_DIR")"
 RUN_ROOT="${RUN_ROOT:-/root/autodl-tmp/raicom_runs}"
 RUN_NAME="${RUN_NAME:-ensemble_$(date +%Y%m%d_%H%M%S)}"
 OUTPUT_DIR="${OUTPUT_DIR:-$RUN_ROOT/$RUN_NAME}"
@@ -35,6 +37,10 @@ DRY_RUN="${DRY_RUN:-0}"
 
 mkdir -p "$OUTPUT_DIR/logs"
 cd "$PROJECT_DIR"
+
+if [[ "$DRY_RUN" != "1" ]]; then
+  autodl_check_gpu
+fi
 
 cmd=(
   python "$PROJECT_DIR/scripts/train_small_strong_ensemble.py"
